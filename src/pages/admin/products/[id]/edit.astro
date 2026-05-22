@@ -1,0 +1,607 @@
+---
+import AdminLayout from '../../../../layouts/AdminLayout.astro';
+import { db } from '../../../../db';
+import { products, categories } from '../../../../db/schema';
+import { eq } from 'drizzle-orm';
+
+// Get product ID from URL
+const { id } = Astro.params;
+
+if (!id) {
+  return Astro.redirect('/admin/products');
+}
+
+// Fetch product
+const product = await db.select()
+  .from(products)
+  .where(eq(products.id, id))
+  .get();
+
+if (!product) {
+  return Astro.redirect('/admin/products');
+}
+
+// Fetch all categories for dropdown
+const allCategories = await db.select().from(categories).orderBy(categories.name).all();
+
+// Parse variants if they exist
+const variantsArray = product.variants ? JSON.parse(product.variants) : null;
+const variantsString = variantsArray ? JSON.stringify(variantsArray, null, 2) : '';
+
+// Parse images array
+const imagesArray: string[] = product.images ? (typeof product.images === 'string' ? JSON.parse(product.images) : product.images) : [];
+// Combine main image with additional images for display
+const allImages: string[] = product.image ? [product.image, ...imagesArray] : imagesArray;
+---
+
+<AdminLayout title={`Editar ${product.name} | Admin Panel`}>
+  <div class="p-6 lg:p-8 max-w-4xl">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex items-center gap-3 mb-4">
+        <a
+          href="/admin/products"
+          class="p-2 hover:bg-surface-container-highest rounded transition-colors"
+        >
+          <span class="material-symbols-outlined text-on-surface">
+            arrow_back
+          </span>
+        </a>
+        <div>
+          <h1 class="text-3xl font-display font-bold text-on-surface">
+            Editar Producto
+          </h1>
+          <p class="text-on-surface-variant">
+            Modifica la información del producto
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <form id="product-form" class="space-y-6">
+      <input type="hidden" name="id" value={product.id} />
+      
+      <div class="bg-surface rounded p-6 border border-outline-variant space-y-6">
+        <!-- SKU -->
+        <div>
+          <label for="sku" class="block text-sm font-semibold text-on-surface mb-2">
+            SKU <span class="text-error">*</span>
+          </label>
+          <input
+            type="text"
+            id="sku"
+            name="sku"
+            required
+            value={product.sku}
+            placeholder="Ej: ESC-001"
+            class="w-full px-4 py-3 bg-surface-container rounded border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+          />
+          <p class="mt-1 text-sm text-on-surface-variant">Código único del producto</p>
+        </div>
+
+        <!-- Name -->
+        <div>
+          <label for="name" class="block text-sm font-semibold text-on-surface mb-2">
+            Nombre <span class="text-error">*</span>
+          </label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            required
+            value={product.name}
+            placeholder="Ej: Escoba TR"
+            class="w-full px-4 py-3 bg-surface-container rounded border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+          />
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label for="description" class="block text-sm font-semibold text-on-surface mb-2">
+            Descripción
+          </label>
+          <textarea
+            id="description"
+            name="description"
+            rows="3"
+            placeholder="Describe el producto..."
+            class="w-full px-4 py-3 bg-surface-container rounded border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"
+          >{product.description}</textarea>
+        </div>
+
+        <!-- Category -->
+        <div>
+          <label for="categoryId" class="block text-sm font-semibold text-on-surface mb-2">
+            Categoría
+          </label>
+          <select
+            id="categoryId"
+            name="categoryId"
+            class="w-full px-4 py-3 bg-surface-container rounded border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+          >
+            <option value="">Sin categoría</option>
+            {allCategories.map(cat => (
+              <option value={cat.id} selected={cat.id === product.categoryId}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <!-- Price -->
+        <div>
+          <label for="price" class="block text-sm font-semibold text-on-surface mb-2">
+            Precio (COP) <span class="text-error">*</span>
+          </label>
+          <div class="relative">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-semibold">
+              $
+            </span>
+            <input
+              type="number"
+              id="price"
+              name="price"
+              required
+              min="0"
+              step="100"
+              value={product.price}
+              placeholder="18000"
+              class="w-full pl-8 pr-4 py-3 bg-surface-container rounded border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+            />
+          </div>
+          <p class="mt-1 text-sm text-on-surface-variant">Precio en pesos colombianos</p>
+        </div>
+
+        <!-- Image Upload -->
+        <div>
+          <label class="block text-sm font-semibold text-on-surface mb-2">
+            Imágenes del Producto
+          </label>
+          <p class="text-sm text-on-surface-variant mb-3">La primera imagen será la principal. Puedes agregar hasta 5 imágenes.</p>
+          
+          <!-- Images Grid -->
+          <div id="images-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
+            {allImages.map((img, index) => (
+              <div class="image-item relative aspect-square bg-surface-container rounded overflow-hidden border-2 border-outline-variant group" data-url={img}>
+                <img src={img} alt={`Imagen ${index + 1}`} class="w-full h-full object-cover" />
+                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  {index === 0 && (
+                    <span class="absolute top-2 left-2 bg-primary text-on-primary text-xs px-2 py-1 rounded font-semibold">Principal</span>
+                  )}
+                  <button type="button" class="move-left-btn w-8 h-8 bg-white/90 rounded flex items-center justify-center hover:bg-white transition-colors" title="Mover a la izquierda">
+                    <span class="material-symbols-outlined text-sm">chevron_left</span>
+                  </button>
+                  <button type="button" class="move-right-btn w-8 h-8 bg-white/90 rounded flex items-center justify-center hover:bg-white transition-colors" title="Mover a la derecha">
+                    <span class="material-symbols-outlined text-sm">chevron_right</span>
+                  </button>
+                  <button type="button" class="remove-image-btn w-8 h-8 bg-error text-white rounded flex items-center justify-center hover:bg-error/80 transition-colors" title="Eliminar">
+                    <span class="material-symbols-outlined text-sm">close</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <!-- Drop Zone for new images -->
+          <div 
+            id="drop-zone"
+            class="relative border-2 border-dashed border-outline-variant rounded p-6 text-center transition-all hover:border-primary hover:bg-surface-container/50 cursor-pointer"
+          >
+            <input
+              type="file"
+              id="file-input"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              multiple
+              class="hidden"
+            />
+            
+            <!-- Upload Icon & Text -->
+            <div id="upload-prompt" class="flex flex-col items-center gap-2">
+              <span class="material-symbols-outlined text-4xl text-on-surface-variant">
+                add_photo_alternate
+              </span>
+              <div>
+                <p class="text-on-surface font-semibold mb-1">
+                  Agregar más imágenes
+                </p>
+                <p class="text-sm text-on-surface-variant">
+                  JPG, PNG o WebP (máx. 5MB cada una)
+                </p>
+              </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="upload-loading" class="hidden flex-col items-center gap-3">
+              <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <p class="text-on-surface font-semibold">Subiendo imagen...</p>
+            </div>
+          </div>
+
+          <!-- Error Message -->
+          <div id="upload-error" class="hidden mt-2 p-3 bg-error-container border border-error rounded">
+            <p id="upload-error-text" class="text-sm text-on-error-container"></p>
+          </div>
+        </div>
+
+        <!-- Variants -->
+        <div>
+          <label for="variants" class="block text-sm font-semibold text-on-surface mb-2">
+            Variantes (JSON)
+          </label>
+          <textarea
+            id="variants"
+            name="variants"
+            rows="3"
+            placeholder='["Cerda suave", "Cerda dura"]'
+            class="w-full px-4 py-3 bg-surface-container rounded border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none font-mono text-sm"
+          >{variantsString}</textarea>
+          <p class="mt-1 text-sm text-on-surface-variant">Array JSON de variantes (opcional)</p>
+        </div>
+
+        <!-- Order -->
+        <div>
+          <label for="order" class="block text-sm font-semibold text-on-surface mb-2">
+            Orden
+          </label>
+          <input
+            type="number"
+            id="order"
+            name="order"
+            min="0"
+            value={product.order}
+            class="w-full px-4 py-3 bg-surface-container rounded border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+          />
+          <p class="mt-1 text-sm text-on-surface-variant">Orden de visualización (menor = primero)</p>
+        </div>
+
+        <!-- Active -->
+        <div class="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="active"
+            name="active"
+            checked={product.active}
+            class="w-5 h-5 rounded border-outline-variant text-primary focus:ring-2 focus:ring-primary/20"
+          />
+          <label for="active" class="text-sm font-semibold text-on-surface cursor-pointer">
+            Producto activo
+          </label>
+        </div>
+      </div>
+
+      <!-- Error Message -->
+      <div id="error-message" class="hidden bg-error-container border border-error rounded p-4">
+        <div class="flex items-start gap-3">
+          <span class="material-symbols-outlined text-error">
+            error
+          </span>
+          <div>
+            <p class="font-semibold text-on-error-container mb-1">Error</p>
+            <p id="error-text" class="text-sm text-on-error-container"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex flex-col lg:flex-row gap-4">
+        <div class="flex flex-1 gap-4">
+          <button
+            type="submit"
+            class="flex-1 lg:flex-none px-8 py-3 bg-secondary text-on-secondary rounded font-semibold hover:shadow-lg hover:brightness-105 transition-all flex items-center justify-center gap-2"
+          >
+            <span class="material-symbols-outlined">
+              save
+            </span>
+            <span>Guardar Cambios</span>
+          </button>
+          <a
+            href="/admin/products"
+            class="flex-1 lg:flex-none px-8 py-3 bg-surface-container text-on-surface rounded font-semibold hover:shadow-md transition-all flex items-center justify-center gap-2 border border-outline-variant"
+          >
+            <span class="material-symbols-outlined">
+              close
+            </span>
+            <span>Cancelar</span>
+          </a>
+        </div>
+        
+        <button
+          type="button"
+          id="delete-btn"
+          class="px-8 py-3 bg-error-container text-on-error-container rounded font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
+        >
+          <span class="material-symbols-outlined">
+            delete
+          </span>
+          <span>Eliminar Producto</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <script define:vars={{ productId: product.id, productName: product.name, initialImages: allImages }}>
+    const form = document.getElementById('product-form');
+    const errorMessage = document.getElementById('error-message');
+    const errorText = document.getElementById('error-text');
+    const deleteBtn = document.getElementById('delete-btn');
+    
+    // Image upload elements
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const imagesContainer = document.getElementById('images-container');
+    const uploadPrompt = document.getElementById('upload-prompt');
+    const uploadLoading = document.getElementById('upload-loading');
+    const uploadError = document.getElementById('upload-error');
+    const uploadErrorText = document.getElementById('upload-error-text');
+
+    // Store all image URLs
+    let imageUrls = [...initialImages];
+    const MAX_IMAGES = 5;
+
+    // Render images grid
+    function renderImages() {
+      imagesContainer.innerHTML = imageUrls.map((url, index) => `
+        <div class="image-item relative aspect-square bg-surface-container rounded overflow-hidden border-2 border-outline-variant group" data-url="${url}" data-index="${index}">
+          <img src="${url}" alt="Imagen ${index + 1}" class="w-full h-full object-cover" />
+          <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+            ${index === 0 ? '<span class="absolute top-2 left-2 bg-primary text-on-primary text-xs px-2 py-1 rounded font-semibold">Principal</span>' : ''}
+            <button type="button" class="move-left-btn w-8 h-8 bg-white/90 rounded flex items-center justify-center hover:bg-white transition-colors ${index === 0 ? 'opacity-30 cursor-not-allowed' : ''}" title="Mover a la izquierda" ${index === 0 ? 'disabled' : ''}>
+              <span class="material-symbols-outlined text-sm">chevron_left</span>
+            </button>
+            <button type="button" class="move-right-btn w-8 h-8 bg-white/90 rounded flex items-center justify-center hover:bg-white transition-colors ${index === imageUrls.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}" title="Mover a la derecha" ${index === imageUrls.length - 1 ? 'disabled' : ''}>
+              <span class="material-symbols-outlined text-sm">chevron_right</span>
+            </button>
+            <button type="button" class="remove-image-btn w-8 h-8 bg-error text-white rounded flex items-center justify-center hover:bg-error/80 transition-colors" title="Eliminar">
+              <span class="material-symbols-outlined text-sm">close</span>
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      // Add event listeners to buttons
+      imagesContainer.querySelectorAll('.image-item').forEach((item) => {
+        const index = parseInt(item.dataset.index);
+        
+        item.querySelector('.move-left-btn')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (index > 0) {
+            [imageUrls[index - 1], imageUrls[index]] = [imageUrls[index], imageUrls[index - 1]];
+            renderImages();
+          }
+        });
+
+        item.querySelector('.move-right-btn')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (index < imageUrls.length - 1) {
+            [imageUrls[index], imageUrls[index + 1]] = [imageUrls[index + 1], imageUrls[index]];
+            renderImages();
+          }
+        });
+
+        item.querySelector('.remove-image-btn')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          imageUrls.splice(index, 1);
+          renderImages();
+        });
+      });
+
+      // Show/hide drop zone based on image count
+      if (imageUrls.length >= MAX_IMAGES) {
+        dropZone.style.display = 'none';
+      } else {
+        dropZone.style.display = 'block';
+      }
+    }
+
+    // Initial render
+    renderImages();
+
+    // Click to select file
+    dropZone.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    // Prevent default drag behaviors
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, preventDefaults, false);
+      document.body.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    // Highlight drop zone when dragging over it
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, () => {
+        dropZone.classList.add('border-primary', 'bg-surface-container');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, () => {
+        dropZone.classList.remove('border-primary', 'bg-surface-container');
+      });
+    });
+
+    // Handle dropped files
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt?.files;
+      if (files && files.length > 0) {
+        handleFiles(Array.from(files));
+      }
+    });
+
+    // Handle selected files
+    fileInput.addEventListener('change', (e) => {
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        handleFiles(Array.from(files));
+      }
+      fileInput.value = ''; // Reset input
+    });
+
+    async function handleFiles(files) {
+      // Hide error
+      uploadError.classList.add('hidden');
+
+      // Check max images
+      const remainingSlots = MAX_IMAGES - imageUrls.length;
+      if (remainingSlots <= 0) {
+        uploadErrorText.textContent = `Máximo ${MAX_IMAGES} imágenes permitidas.`;
+        uploadError.classList.remove('hidden');
+        return;
+      }
+
+      const filesToUpload = files.slice(0, remainingSlots);
+
+      for (const file of filesToUpload) {
+        await handleFile(file);
+      }
+    }
+
+    async function handleFile(file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        uploadErrorText.textContent = 'Tipo de archivo no válido. Solo se permiten JPG, PNG y WebP.';
+        uploadError.classList.remove('hidden');
+        return;
+      }
+
+      // Validate file size (5MB max)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        uploadErrorText.textContent = 'El archivo es demasiado grande. Tamaño máximo: 5MB.';
+        uploadError.classList.remove('hidden');
+        return;
+      }
+
+      // Show loading state
+      uploadPrompt.classList.add('hidden');
+      uploadLoading.classList.remove('hidden');
+      uploadLoading.classList.add('flex');
+
+      try {
+        // Upload to Cloudinary via API
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('folder', 'mister-lya/products');
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al subir la imagen');
+        }
+
+        const result = await response.json();
+        
+        // Add to images array
+        imageUrls.push(result.url);
+        renderImages();
+        
+        // Reset loading state
+        uploadLoading.classList.add('hidden');
+        uploadLoading.classList.remove('flex');
+        uploadPrompt.classList.remove('hidden');
+      } catch (error) {
+        console.error('Upload error:', error);
+        uploadErrorText.textContent = error.message || 'Error al subir la imagen';
+        uploadError.classList.remove('hidden');
+        uploadLoading.classList.add('hidden');
+        uploadLoading.classList.remove('flex');
+        uploadPrompt.classList.remove('hidden');
+      }
+    }
+
+    // Update product
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Hide previous errors
+      errorMessage?.classList.add('hidden');
+
+      // Get form data
+      const formData = new FormData(form);
+      
+      // Prepare images data: first image is main, rest go to images array
+      const mainImage = imageUrls.length > 0 ? imageUrls[0] : null;
+      const additionalImages = imageUrls.length > 1 ? imageUrls.slice(1) : [];
+
+      const data = {
+        sku: formData.get('sku'),
+        name: formData.get('name'),
+        description: formData.get('description') || null,
+        categoryId: formData.get('categoryId') || null,
+        price: parseInt(formData.get('price')),
+        image: mainImage,
+        images: additionalImages,
+        order: parseInt(formData.get('order')) || 0,
+        active: formData.get('active') === 'on',
+      };
+
+      // Parse variants
+      const variantsValue = formData.get('variants');
+      if (variantsValue && variantsValue.trim()) {
+        try {
+          data.variants = JSON.parse(variantsValue);
+        } catch (error) {
+          errorText.textContent = 'El formato de variantes no es un JSON válido';
+          errorMessage?.classList.remove('hidden');
+          return;
+        }
+      }
+
+      try {
+        const response = await fetch(`/api/products/${productId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (response.ok) {
+          window.location.href = '/admin/products';
+        } else {
+          const error = await response.json();
+          errorText.textContent = error.error || 'Error al actualizar el producto';
+          errorMessage?.classList.remove('hidden');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        errorText.textContent = 'Error de conexión al actualizar el producto';
+        errorMessage?.classList.remove('hidden');
+      }
+    });
+
+    // Delete product
+    deleteBtn.addEventListener('click', async () => {
+      if (!confirm(`¿Estás seguro de que deseas eliminar "${productName}"?`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/products/${productId}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          window.location.href = '/admin/products';
+        } else {
+          alert('Error al eliminar el producto');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error de conexión al eliminar el producto');
+      }
+    });
+  </script>
+</AdminLayout>

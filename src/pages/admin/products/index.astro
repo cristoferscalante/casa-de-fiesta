@@ -1,0 +1,294 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { db } from '../../../db';
+import { products, categories } from '../../../db/schema';
+import { eq } from 'drizzle-orm';
+
+// Fetch all products with category info
+const allProducts = await db.select({
+  product: products,
+  categoryName: categories.name,
+}).from(products)
+  .leftJoin(categories, eq(products.categoryId, categories.id))
+  .orderBy(products.order)
+  .all();
+
+// Fetch all categories for filter
+const allCategories = await db.select().from(categories).orderBy(categories.name).all();
+---
+
+<AdminLayout title="Productos | Admin Panel">
+  <div class="p-4 lg:p-6">
+    <!-- Header -->
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-5">
+      <div>
+        <h1 class="text-xl font-display font-bold text-on-surface mb-1">
+          Gestión de Productos
+        </h1>
+        <p class="text-on-surface-variant text-sm">
+          Administra el catálogo completo de productos
+        </p>
+      </div>
+      <a
+        href="/admin/products/new"
+        class="inline-flex items-center gap-1.5 px-4 py-2 bg-secondary text-on-secondary rounded font-semibold text-sm hover:shadow-md hover:brightness-105 transition-all"
+      >
+        <span class="material-symbols-outlined text-lg">
+          add
+        </span>
+        <span>Nuevo Producto</span>
+      </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-surface rounded p-4 mb-4 border border-outline-variant">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <!-- Search -->
+        <div>
+          <label class="block text-xs font-semibold text-on-surface mb-1">
+            Buscar productos
+          </label>
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">
+              search
+            </span>
+            <input
+              type="text"
+              id="search-input"
+              placeholder="Buscar por SKU o nombre..."
+              class="w-full pl-9 pr-3 py-2 bg-surface-container rounded border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all text-sm"
+            />
+          </div>
+        </div>
+
+        <!-- Category Filter -->
+        <div>
+          <label class="block text-xs font-semibold text-on-surface mb-1">
+            Filtrar por categoría
+          </label>
+          <select
+            id="category-filter"
+            class="w-full px-3 py-2 bg-surface-container rounded border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all text-sm"
+          >
+            <option value="">Todas las categorías</option>
+            {allCategories.map(cat => (
+              <option value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Products Table -->
+    <div class="bg-surface rounded border border-outline-variant overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-surface-container-highest border-b border-outline-variant">
+            <tr>
+              <th class="px-3 py-2.5 text-left text-xs font-semibold text-on-surface">Imagen</th>
+              <th class="px-3 py-2.5 text-left text-xs font-semibold text-on-surface">SKU</th>
+              <th class="px-3 py-2.5 text-left text-xs font-semibold text-on-surface">Nombre</th>
+              <th class="px-3 py-2.5 text-left text-xs font-semibold text-on-surface">Categoría</th>
+              <th class="px-3 py-2.5 text-left text-xs font-semibold text-on-surface">Precio</th>
+              <th class="px-3 py-2.5 text-left text-xs font-semibold text-on-surface">Estado</th>
+              <th class="px-3 py-2.5 text-left text-xs font-semibold text-on-surface">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="products-tbody">
+            {allProducts.map(({ product, categoryName }) => (
+              <tr 
+                class="border-b border-outline-variant hover:bg-surface-container-highest transition-colors product-row"
+                data-sku={product.sku.toLowerCase()}
+                data-name={product.name.toLowerCase()}
+                data-category={product.categoryId || ''}
+              >
+                <td class="px-3 py-2">
+                  {product.image ? (
+                    <img 
+                      src={product.image} 
+                      alt={product.name}
+                      class="w-9 h-9 object-cover rounded"
+                    />
+                  ) : (
+                    <div class="w-9 h-9 bg-surface-container-highest rounded flex items-center justify-center">
+                      <span class="material-symbols-outlined text-on-surface-variant text-xs">
+                        image
+                      </span>
+                    </div>
+                  )}
+                </td>
+                <td class="px-3 py-2">
+                  <span class="font-mono text-xs text-on-surface">{product.sku}</span>
+                </td>
+                <td class="px-3 py-2">
+                  <div>
+                    <p class="font-semibold text-sm text-on-surface">{product.name}</p>
+                    {product.description && (
+                      <p class="text-xs text-on-surface-variant line-clamp-1">{product.description}</p>
+                    )}
+                  </div>
+                </td>
+                <td class="px-3 py-2">
+                  <span class="px-2 py-0.5 bg-primary-container text-on-primary-container rounded text-xs">
+                    {categoryName || 'Sin categoría'}
+                  </span>
+                </td>
+                <td class="px-3 py-2">
+                  <span class="font-semibold text-sm text-on-surface">
+                    ${product.price.toLocaleString('es-CO')}
+                  </span>
+                </td>
+                <td class="px-3 py-2">
+                  <button
+                    class="toggle-active px-2 py-0.5 rounded text-xs font-semibold transition-all"
+                    data-id={product.id}
+                    data-active={product.active}
+                  >
+                    {product.active ? (
+                      <span class="flex items-center gap-0.5 text-secondary">
+                        <span class="material-symbols-outlined text-[10px]">check_circle</span>
+                        Activo
+                      </span>
+                    ) : (
+                      <span class="flex items-center gap-0.5 text-error">
+                        <span class="material-symbols-outlined text-[10px]">cancel</span>
+                        Inactivo
+                      </span>
+                    )}
+                  </button>
+                </td>
+                <td class="px-3 py-2">
+                  <div class="flex items-center gap-1">
+                    <a
+                      href={`/admin/products/${product.id}/edit`}
+                      class="p-1.5 hover:bg-surface-container-highest rounded transition-colors"
+                      title="Editar"
+                    >
+                      <span class="material-symbols-outlined text-primary text-lg">
+                        edit
+                      </span>
+                    </a>
+                    <button
+                      class="delete-btn p-1.5 hover:bg-error-container rounded transition-colors"
+                      data-id={product.id}
+                      data-name={product.name}
+                      title="Eliminar"
+                    >
+                      <span class="material-symbols-outlined text-error text-lg">
+                        delete
+                      </span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {allProducts.length === 0 && (
+        <div class="p-8 text-center">
+          <span class="material-symbols-outlined text-on-surface-variant mb-3 block" style="font-size: 48px;">
+            inventory_2
+          </span>
+          <p class="text-sm text-on-surface-variant">
+            No hay productos registrados
+          </p>
+          <a
+            href="/admin/products/new"
+            class="inline-flex items-center gap-1.5 mt-3 px-4 py-2 bg-secondary text-on-secondary rounded font-semibold text-sm hover:shadow-md transition-all"
+          >
+            <span class="material-symbols-outlined text-lg">add</span>
+            <span>Crear primer producto</span>
+          </a>
+        </div>
+      )}
+    </div>
+  </div>
+
+  <script>
+    // Search functionality
+    const searchInput = document.getElementById('search-input') as HTMLInputElement;
+    const categoryFilter = document.getElementById('category-filter') as HTMLSelectElement;
+    const rows = document.querySelectorAll('.product-row');
+
+    function filterProducts() {
+      const searchTerm = searchInput.value.toLowerCase();
+      const selectedCategory = categoryFilter.value;
+
+      rows.forEach(row => {
+        const sku = row.getAttribute('data-sku') || '';
+        const name = row.getAttribute('data-name') || '';
+        const category = row.getAttribute('data-category') || '';
+
+        const matchesSearch = sku.includes(searchTerm) || name.includes(searchTerm);
+        const matchesCategory = !selectedCategory || category === selectedCategory;
+
+        if (matchesSearch && matchesCategory) {
+          (row as HTMLElement).style.display = '';
+        } else {
+          (row as HTMLElement).style.display = 'none';
+        }
+      });
+    }
+
+    searchInput?.addEventListener('input', filterProducts);
+    categoryFilter?.addEventListener('change', filterProducts);
+
+    // Toggle active status
+    document.querySelectorAll('.toggle-active').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const button = e.currentTarget as HTMLButtonElement;
+        const id = button.getAttribute('data-id');
+        const isActive = button.getAttribute('data-active') === 'true';
+
+        try {
+          const response = await fetch(`/api/products/${id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ active: !isActive }),
+          });
+
+          if (response.ok) {
+            window.location.reload();
+          } else {
+            alert('Error al actualizar el estado del producto');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          alert('Error al actualizar el estado del producto');
+        }
+      });
+    });
+
+    // Delete functionality
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const button = e.currentTarget as HTMLButtonElement;
+        const id = button.getAttribute('data-id');
+        const name = button.getAttribute('data-name');
+
+        if (!confirm(`¿Estás seguro de que deseas eliminar "${name}"?`)) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`/api/products/${id}`, {
+            method: 'DELETE',
+          });
+
+          if (response.ok) {
+            window.location.reload();
+          } else {
+            alert('Error al eliminar el producto');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          alert('Error al eliminar el producto');
+        }
+      });
+    });
+  </script>
+</AdminLayout>

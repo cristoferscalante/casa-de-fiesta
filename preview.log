@@ -1,0 +1,6 @@
+
+> galactic-giant@0.0.1 preview
+> astro preview
+
+20:18:05 [@astrojs/node] Enabling sessions with filesystem storage
+20:18:06 [@astrojs/node] Server listening on http://localhost:4321

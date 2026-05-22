@@ -1,0 +1,155 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { db } from '../../db';
+import { products, categories } from '../../db/schema';
+import { eq } from 'drizzle-orm';
+
+// Fetch statistics
+const allProducts = await db.select().from(products).all();
+const allCategories = await db.select().from(categories).all();
+
+const totalProducts = allProducts.length;
+const activeProducts = allProducts.filter(p => p.active).length;
+const totalCategories = allCategories.length;
+---
+
+<AdminLayout title="Dashboard | Admin Panel">
+  <div class="p-4 lg:p-6">
+    <!-- Welcome Card -->
+    <div class="bg-gradient-to-br from-primary to-primary-container rounded p-5 mb-5 shadow-md">
+      <div class="flex items-start gap-3">
+        <span class="material-symbols-outlined text-on-primary text-3xl">
+          waving_hand
+        </span>
+        <div>
+          <h2 class="text-xl font-display font-bold text-on-primary mb-1">
+            Panel de Administración
+          </h2>
+          <p class="text-sm text-on-primary opacity-90">
+            Bienvenido al panel de control de Mister LyA
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+      <!-- Total Products -->
+      <div class="bg-surface rounded p-4 border border-outline-variant hover:shadow-md transition-all">
+        <div class="flex items-start justify-between mb-2">
+          <div class="bg-secondary-container rounded p-2">
+            <span class="material-symbols-outlined text-on-secondary-container text-lg">
+              inventory_2
+            </span>
+          </div>
+          <div class="text-right">
+            <p class="text-[10px] text-on-surface-variant mb-0.5">Total</p>
+            <p class="text-2xl font-display font-bold text-on-surface">{totalProducts}</p>
+          </div>
+        </div>
+        <h3 class="text-xs font-semibold text-on-surface-variant">Productos Totales</h3>
+      </div>
+
+      <!-- Active Products -->
+      <div class="bg-surface rounded p-4 border border-outline-variant hover:shadow-md transition-all">
+        <div class="flex items-start justify-between mb-2">
+          <div class="bg-tertiary-container rounded p-2">
+            <span class="material-symbols-outlined text-on-tertiary-container text-lg">
+              check_circle
+            </span>
+          </div>
+          <div class="text-right">
+            <p class="text-[10px] text-on-surface-variant mb-0.5">Activos</p>
+            <p class="text-2xl font-display font-bold text-on-surface">{activeProducts}</p>
+          </div>
+        </div>
+        <h3 class="text-xs font-semibold text-on-surface-variant">Productos Activos</h3>
+      </div>
+
+      <!-- Total Categories -->
+      <div class="bg-surface rounded p-4 border border-outline-variant hover:shadow-md transition-all">
+        <div class="flex items-start justify-between mb-2">
+          <div class="bg-primary-container rounded p-2">
+            <span class="material-symbols-outlined text-on-primary-container text-lg">
+              category
+            </span>
+          </div>
+          <div class="text-right">
+            <p class="text-[10px] text-on-surface-variant mb-0.5">Total</p>
+            <p class="text-2xl font-display font-bold text-on-surface">{totalCategories}</p>
+          </div>
+        </div>
+        <h3 class="text-xs font-semibold text-on-surface-variant">Categorías</h3>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="bg-surface rounded p-4 border border-outline-variant hover:shadow-md transition-all">
+        <div class="flex items-start justify-between mb-2">
+          <div class="bg-error-container rounded p-2">
+            <span class="material-symbols-outlined text-on-error-container text-lg">
+              schedule
+            </span>
+          </div>
+          <div class="text-right">
+            <p class="text-[10px] text-on-surface-variant mb-0.5">Última</p>
+            <p class="text-base font-display font-bold text-on-surface">Hoy</p>
+          </div>
+        </div>
+        <h3 class="text-xs font-semibold text-on-surface-variant">Actividad Reciente</h3>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-surface rounded p-5 border border-outline-variant">
+      <h3 class="text-base font-display font-bold text-on-surface mb-4">
+        Acciones Rápidas
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <a
+          href="/admin/products"
+          class="p-4 bg-secondary-container/20 border border-secondary-container rounded hover:shadow-md hover:bg-secondary-container/30 transition-all group"
+        >
+          <span class="material-symbols-outlined text-secondary mb-2 block text-2xl">
+            inventory_2
+          </span>
+          <h4 class="text-sm font-display font-semibold text-on-surface mb-1">
+            Ver Productos
+          </h4>
+          <p class="text-xs text-on-surface-variant">
+            Gestionar el catálogo completo
+          </p>
+        </a>
+        
+        <a
+          href="/admin/categories"
+          class="p-4 bg-primary-container/20 border border-primary-container rounded hover:shadow-md hover:bg-primary-container/30 transition-all group"
+        >
+          <span class="material-symbols-outlined text-primary mb-2 block text-2xl">
+            category
+          </span>
+          <h4 class="text-sm font-display font-semibold text-on-surface mb-1">
+            Ver Categorías
+          </h4>
+          <p class="text-xs text-on-surface-variant">
+            Organizar las categorías
+          </p>
+        </a>
+
+        <a
+          href="/admin/products/new"
+          class="p-4 bg-tertiary-container/20 border border-tertiary-container rounded hover:shadow-md hover:bg-tertiary-container/30 transition-all group"
+        >
+          <span class="material-symbols-outlined text-tertiary mb-2 block text-2xl">
+            add_circle
+          </span>
+          <h4 class="text-sm font-display font-semibold text-on-surface mb-1">
+            Nuevo Producto
+          </h4>
+          <p class="text-xs text-on-surface-variant">
+            Agregar al catálogo
+          </p>
+        </a>
+      </div>
+    </div>
+  </div>
+</AdminLayout>

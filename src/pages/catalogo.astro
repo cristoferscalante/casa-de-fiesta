@@ -1,0 +1,96 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import InteractiveCatalog from '../components/InteractiveCatalog.astro';
+import Footer from '../components/Footer.astro';
+import WhatsAppButton from '../components/WhatsAppButton.astro';
+import { db } from '../db';
+import { products as productsTable, categories as categoriesTable } from '../db/schema';
+
+// Fetch products and categories from database
+let products: any[] = [];
+let categories: any[] = [];
+let fetchError = false;
+
+try {
+	const parseJsonField = (value: unknown, fallback: any) => {
+		if (value == null) return fallback;
+		if (typeof value === 'string') {
+			try {
+				return JSON.parse(value);
+			} catch {
+				return fallback;
+			}
+		}
+		return value;
+	};
+
+	const [allProducts, allCategories] = await Promise.all([
+		db.select({
+			id: productsTable.id,
+			sku: productsTable.sku,
+			name: productsTable.name,
+			description: productsTable.description,
+			categoryId: productsTable.categoryId,
+			price: productsTable.price,
+			image: productsTable.image,
+			images: productsTable.images,
+			variants: productsTable.variants,
+			active: productsTable.active,
+			order: productsTable.order,
+		}).from(productsTable).all(),
+		db.select()
+			.from(categoriesTable)
+			.orderBy(categoriesTable.order)
+			.all()
+	]) as any;
+
+	// Parse JSON fields and filter only active products
+	products = allProducts
+		.filter((p: any) => p.active === true)
+		.map((p: any) => ({
+			...p,
+			variants: parseJsonField(p.variants, null),
+			images: parseJsonField(p.images, []),
+		}));
+
+	categories = allCategories;
+} catch (error) {
+	console.error('Error fetching data from database:', error);
+	fetchError = true;
+}
+---
+
+<Layout 
+	title="Catálogo de Productos | Mister LyA"
+	description="Explora nuestro catálogo completo de productos de limpieza profesional. Escobas, traperos, jabones, esponjas y más."
+>
+	<Navbar />
+	
+	<main class="pt-14">
+		{fetchError ? (
+			<div class="min-h-screen flex items-center justify-center bg-surface-container-low">
+				<div class="text-center p-8 max-w-md">
+					<span class="material-symbols-outlined text-6xl text-on-surface-variant mb-4">error</span>
+					<h2 class="font-headline text-2xl font-bold text-primary mb-4">
+						No pudimos cargar el catálogo
+					</h2>
+					<p class="text-on-surface-variant mb-6">
+						Por favor, intenta recargar la página o contáctanos por WhatsApp.
+					</p>
+					<button 
+						class="bg-primary text-on-primary px-6 py-3 rounded-full font-bold hover:scale-95 transition-all"
+						onclick="window.location.reload()"
+					>
+						Recargar página
+					</button>
+				</div>
+			</div>
+		) : (
+			<InteractiveCatalog products={products} categories={categories} />
+		)}
+	</main>
+	
+	<Footer />
+	<WhatsAppButton position="left" />
+</Layout>

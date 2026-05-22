@@ -1,0 +1,78 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Hero from '../components/Hero.astro';
+import Mission from '../components/Mission.astro';
+import FeaturedProducts from '../components/FeaturedProducts.astro';
+import CTA from '../components/CTA.astro';
+import Footer from '../components/Footer.astro';
+import WhatsAppButton from '../components/WhatsAppButton.astro';
+import { db } from '../db';
+import { products as productsTable, categories as categoriesTable } from '../db/schema';
+
+// Fetch products and categories from database
+let products: any[] = [];
+let categories: any[] = [];
+let fetchError = false;
+
+try {
+	const parseJsonField = (value: unknown, fallback: any) => {
+		if (value == null) return fallback;
+		if (typeof value === 'string') {
+			try {
+				return JSON.parse(value);
+			} catch {
+				return fallback;
+			}
+		}
+		return value;
+	};
+
+	const [allProducts, allCategories] = await Promise.all([
+		db.select({
+			id: productsTable.id,
+			sku: productsTable.sku,
+			name: productsTable.name,
+			description: productsTable.description,
+			categoryId: productsTable.categoryId,
+			price: productsTable.price,
+			image: productsTable.image,
+			variants: productsTable.variants,
+			active: productsTable.active,
+			order: productsTable.order,
+		}).from(productsTable).all(),
+		db.select()
+			.from(categoriesTable)
+			.orderBy(categoriesTable.order)
+			.all()
+	]) as any;
+
+	// Parse variants from JSON string
+	products = allProducts.map((p: any) => ({
+		...p,
+		variants: parseJsonField(p.variants, null),
+	}));
+
+	categories = allCategories;
+} catch (error) {
+	console.error('Error fetching data from database:', error);
+	fetchError = true;
+}
+---
+
+<Layout 
+	title="Mister LyA | Productos de Limpieza Profesional"
+	description="Descubre nuestra amplia gama de productos de limpieza: escobas, traperos, jabones, esponjas y más. Calidad profesional para tu hogar o negocio."
+>
+	<Navbar />
+	
+	<main class="pt-20">
+		<Hero />
+		<Mission />
+		<FeaturedProducts products={products} categories={categories} />
+		<CTA />
+	</main>
+	
+	<Footer />
+	<WhatsAppButton position="right" />
+</Layout>

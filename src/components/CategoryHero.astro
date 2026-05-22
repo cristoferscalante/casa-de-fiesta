@@ -1,0 +1,171 @@
+---
+interface Props {
+	categories: any[];
+}
+
+const { categories } = Astro.props;
+---
+
+<section class="relative min-h-[70vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary via-primary-container to-secondary" id="catalog-hero">
+  <!-- Animated background shapes -->
+  <div class="absolute inset-0 overflow-hidden">
+    <div class="absolute top-20 left-10 w-72 h-72 bg-secondary-fixed/20 rounded-full blur-3xl animate-pulse"></div>
+    <div class="absolute bottom-20 right-10 w-96 h-96 bg-primary-fixed/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
+  </div>
+  
+  <div class="max-w-screen-2xl mx-auto px-6 md:px-12 py-20 relative z-10">
+    <div class="text-center mb-16">
+      <h1 class="font-headline text-5xl md:text-7xl font-extrabold text-white mb-6 tracking-tighter">
+        Nuestro Catálogo
+      </h1>
+      <p class="text-white/80 text-xl md:text-2xl max-w-3xl mx-auto">
+        Explora nuestra colección completa de productos de limpieza profesional
+      </p>
+    </div>
+
+    <!-- Category Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
+      {categories.map((category, index) => (
+        <button 
+          class={`category-card group relative p-6 md:p-8 bg-white rounded-2xl border-2 border-white shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 ${index === 0 ? 'active-category' : ''}`}
+          data-category={category.id}
+        >
+          <div class="flex flex-col items-center gap-4">
+            <div class="w-16 h-16 md:w-20 md:h-20 bg-primary/10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <span class="material-symbols-outlined text-4xl md:text-5xl text-primary">{category.icon}</span>
+            </div>
+            <h3 class="font-bold text-sm md:text-base text-primary text-center group-hover:scale-105 transition-transform">
+              {category.name}
+            </h3>
+          </div>
+          
+          <!-- Ripple effect on click -->
+          <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+            <div class="ripple absolute inset-0 bg-primary/20 scale-0 rounded-full"></div>
+          </div>
+        </button>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+  // Filter products by category
+  document.querySelectorAll('.category-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      const categoryId = card.getAttribute('data-category');
+      
+      // Update active state
+      document.querySelectorAll('.category-card').forEach(c => {
+        c.classList.remove('active-category');
+      });
+      card.classList.add('active-category');
+      
+      // Show/hide category sections
+      document.querySelectorAll('.category-section').forEach(section => {
+        const sectionCategory = section.getAttribute('data-category');
+        
+        // Reset animations for all products
+        section.querySelectorAll('.product-card').forEach(productCard => {
+          productCard.classList.remove('fade-in-up');
+        });
+        
+        if (sectionCategory === categoryId) {
+          section.style.display = 'block';
+          // Trigger fade-in animation after a brief delay
+          setTimeout(() => {
+            section.querySelectorAll('.product-card').forEach((productCard, index) => {
+              setTimeout(() => {
+                productCard.classList.add('fade-in-up');
+              }, index * 50);
+            });
+          }, 50);
+        } else {
+          section.style.display = 'none';
+        }
+      });
+      
+      // Update background color
+      const mainSection = document.querySelector('#products-section');
+      if (mainSection) {
+        mainSection.setAttribute('data-active-category', categoryId || '');
+      }
+      
+      // Ripple effect
+      const ripple = card.querySelector('.ripple');
+      if (ripple) {
+        ripple.classList.remove('animate-ripple');
+        setTimeout(() => {
+          ripple.classList.add('animate-ripple');
+        }, 10);
+      }
+    });
+  });
+  
+  // Initialize: show first category by default (without clicking to avoid flash)
+  document.addEventListener('DOMContentLoaded', () => {
+    const firstCategory = document.querySelector('.category-card[data-category="escobas"]');
+    if (firstCategory) {
+      const categoryId = firstCategory.getAttribute('data-category');
+      
+      // Show first category section
+      document.querySelectorAll('.category-section').forEach(section => {
+        const sectionCategory = section.getAttribute('data-category');
+        if (sectionCategory === categoryId) {
+          section.style.display = 'block';
+          // Animate products
+          setTimeout(() => {
+            section.querySelectorAll('.product-card').forEach((productCard, index) => {
+              setTimeout(() => {
+                productCard.classList.add('fade-in-up');
+              }, index * 50);
+            });
+          }, 50);
+        } else {
+          section.style.display = 'none';
+        }
+      });
+      
+      // Set background color
+      const mainSection = document.querySelector('#products-section');
+      if (mainSection) {
+        mainSection.setAttribute('data-active-category', categoryId || '');
+      }
+    }
+  });
+</script>
+
+<style>
+  .active-category {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-container) 100%);
+    border-color: var(--color-primary);
+    transform: scale(1.05);
+  }
+  
+  .active-category h3 {
+    color: white !important;
+  }
+  
+  .active-category .material-symbols-outlined {
+    color: white !important;
+  }
+  
+  .active-category > div > div {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+  }
+  
+  @keyframes ripple {
+    0% {
+      transform: scale(0);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(2.5);
+      opacity: 0;
+    }
+  }
+  
+  .animate-ripple {
+    animation: ripple 0.6s ease-out;
+  }
+</style>

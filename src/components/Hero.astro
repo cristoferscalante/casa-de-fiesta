@@ -1,0 +1,115 @@
+---
+---
+
+<section class="relative px-6 py-2 md:py-4 lg:py-8 md:px-12 overflow-hidden" id="home">
+  <div class="max-w-screen-2xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center">
+    <div class="relative z-10">
+      <h1 class="hero-title font-headline text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-primary leading-[1.1] tracking-tighter mb-8">
+        Mister LyA <br/><span class="text-secondary italic">La esencia de la limpieza</span>
+      </h1>
+      
+      <div class="flex flex-wrap gap-5">
+        <a class="hero-button bg-primary text-on-primary px-8 py-3.5 rounded-lg font-bold text-base transition-all active:scale-95 relative overflow-hidden group flex items-center gap-2" 
+           href="/catalogo">
+          <span class="material-symbols-outlined text-xl">menu_book</span>
+          <span class="relative z-10 inline-block transition-transform duration-300 group-hover:translate-x-1">Ver Catálogo</span>
+          <span class="material-symbols-outlined text-lg opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300">arrow_forward</span>
+          <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+        </a>
+      </div>
+    </div>
+    
+    <div class="hero-video relative md:h-[450px] lg:h-[550px] xl:h-[600px] flex items-center justify-center">
+      <div class="absolute -top-12 -right-12 w-full h-full bg-gradient-to-br from-primary/10 to-secondary/10 rounded-full blur-[100px] animate-pulse-glow"></div>
+      <div class="relative w-full max-w-2xl">
+        <div class="relative rounded-3xl overflow-hidden shadow-2xl">
+          <video 
+            id="hero-video"
+            class="w-full h-auto object-cover scale-108"
+            autoplay
+            loop
+            muted
+            playsinline
+          >
+            <source src="/v.mp4" type="video/mp4" />
+            Tu navegador no soporta el elemento de video.
+          </video>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .scale-108 {
+    transform: scale(1.08);
+  }
+
+  @keyframes slideInFromLeft {
+    0% {
+      opacity: 0;
+      transform: translateX(-100px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideInFromBottom {
+    0% {
+      opacity: 0;
+      transform: translateY(80px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideInFromRight {
+    0% {
+      opacity: 0;
+      transform: translateX(150px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% {
+      opacity: 0.1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.15;
+      transform: scale(1.05);
+    }
+  }
+
+  .hero-title {
+    animation: slideInFromLeft 1.5s ease-out 1.3s forwards;
+    opacity: 0;
+  }
+
+  .hero-button {
+    animation: slideInFromBottom 1.5s ease-out 2s forwards;
+    opacity: 0;
+  }
+
+  .hero-video {
+    animation: slideInFromRight 1.5s ease-out 0.7s forwards;
+    opacity: 0;
+  }
+
+  .animate-pulse-glow {
+    animation: pulseGlow 3s ease-in-out infinite;
+  }
+
+  .hero-button:hover {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+  }
+</style>

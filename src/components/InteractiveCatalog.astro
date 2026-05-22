@@ -1,0 +1,1209 @@
+---
+interface Props {
+	products: any[];
+	categories: any[];
+}
+
+const { products, categories } = Astro.props;
+
+---
+
+<!-- Hero Section with Title, Filters, and Categories -->
+<section id="catalog-hero" class="relative min-h-[70vh] flex items-center justify-center overflow-hidden bg-primary">
+  <!-- Animated background shapes -->
+  <div class="absolute inset-0 overflow-hidden">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.12),transparent_45%),radial-gradient(circle_at_82%_78%,rgba(255,255,255,0.08),transparent_42%)]"></div>
+    <div class="absolute inset-0 opacity-30" style="background-image: radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1px); background-size: 20px 20px;"></div>
+    <div class="absolute top-20 left-10 w-56 h-56 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+    <div class="absolute bottom-20 right-10 w-72 h-72 bg-secondary/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
+  </div>
+  
+  <div class="max-w-screen-xl mx-auto px-4 md:px-8 py-10 md:py-14 relative z-10 w-full">
+    <!-- Title and Description -->
+    <div class="text-center mb-8">
+      <h1 class="font-headline text-3xl md:text-5xl font-extrabold text-white mb-4 tracking-tighter">
+        Nuestro Catálogo
+      </h1>
+      <p class="text-white/90 text-sm md:text-base max-w-xl mx-auto mb-6">
+        Explora nuestra colección completa de productos de limpieza profesional.
+      </p>
+    </div>
+
+    <!-- Filters Container -->
+    <div class="max-w-4xl mx-auto bg-white/95 backdrop-blur-xl rounded-xl shadow-xl p-4 md:p-6 mb-8 relative">
+      <div>
+        <!-- Search Bar -->
+        <div class="relative mb-3">
+          <label for="product-search" class="text-[10px] font-bold text-on-surface-variant mb-1.5 block uppercase tracking-wide">
+            Buscar Producto
+          </label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <span class="material-symbols-outlined text-lg text-on-surface-variant">search</span>
+            </div>
+            <input
+              type="text"
+              id="product-search"
+              placeholder="Nombre del producto..."
+              autocomplete="off"
+              class="w-full pl-10 pr-10 py-2.5 text-sm bg-surface-container rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-on-surface placeholder-on-surface-variant transition-all"
+            />
+            <button
+              id="clear-search"
+              class="absolute inset-y-0 right-0 pr-3 flex items-center opacity-0 pointer-events-none transition-opacity duration-200"
+              aria-label="Limpiar búsqueda"
+            >
+              <span class="material-symbols-outlined text-lg text-on-surface-variant hover:text-primary transition-colors cursor-pointer">close</span>
+            </button>
+            
+            <!-- Autocomplete dropdown -->
+            <div id="autocomplete-dropdown" class="autocomplete-dropdown absolute top-full left-0 right-0 mt-1.5 bg-white rounded-lg shadow-xl border border-surface-container-highest overflow-hidden opacity-0 pointer-events-none transition-all duration-200 z-50">
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="grid grid-cols-3 md:grid-cols-5 gap-2">
+            <button class="category-card category-all-btn group relative px-2 py-2 bg-white/90 backdrop-blur-sm rounded-lg border border-surface-container-high shadow-sm hover:shadow-md transition-all duration-300" data-category="">
+              <div class="flex items-center justify-center gap-1.5">
+                <div class="category-avatar w-8 h-8 rounded-full bg-primary/10 border border-primary/15 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-xs text-primary">apps</span>
+                </div>
+                <h3 class="font-semibold text-xs text-primary leading-tight">Todas</h3>
+              </div>
+            </button>
+            {categories.map((category) => (
+              <button 
+                class="category-card group relative px-2 py-2 bg-white/90 backdrop-blur-sm rounded-lg border border-surface-container-high shadow-sm hover:shadow-md transition-all duration-300"
+                data-category={category.id}
+              >
+                <div class="flex items-center justify-center gap-1.5">
+                  <div class="category-avatar w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-primary/5 border border-primary/10">
+                    {category.image ? (
+                      <img src={category.image} alt={category.name} class="w-full h-full object-cover" loading="lazy" />
+                    ) : (
+                      <span class="material-symbols-outlined text-xs text-primary">{category.icon}</span>
+                    )}
+                  </div>
+                  <h3 class="font-semibold text-xs text-primary leading-tight line-clamp-1">
+                    {category.name}
+                  </h3>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        <!-- Download PDF Button -->
+        <div class="flex justify-center mt-4">
+          <button id="download-pdf-btn" class="flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-lg transition-all text-xs font-bold">
+            <span class="material-symbols-outlined text-base">download</span>
+            <span>Descargar Catálogo PDF</span>
+          </button>
+        </div>
+      </div>
+      
+    </div>
+
+    
+  </div>
+</section>
+<!-- Products Section -->
+<!-- PDF Cover Page (hidden, only shows in print) -->
+<section id="pdf-cover" class="hidden print:flex print:flex-col print:items-center print:justify-center print:h-screen print:bg-white print:relative">
+  <div class="print:absolute print:inset-0 print:opacity-5" style="background-image: radial-gradient(#1056a5 1px, transparent 1px); background-size: 24px 24px;"></div>
+  <div class="print:relative print:z-10 print:flex print:flex-col print:items-center">
+    <img src="/logo-h.png" alt="Mister LyA" class="h-24 mb-8" />
+    <h1 class="text-5xl font-bold text-primary tracking-tight mb-4">Catálogo de Productos</h1>
+    <div class="w-24 h-1 bg-primary rounded-full mb-4"></div>
+    <p class="text-xl text-on-surface-variant mb-8">Mister LyA - La esencia de la limpieza</p>
+    <div class="flex items-center gap-6 text-sm text-on-surface-variant">
+      <span class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary">phone</span>
+        311 541 2230
+      </span>
+      <span class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary">location_on</span>
+        Bogotá, Colombia
+      </span>
+    </div>
+  </div>
+</section>
+
+<section 
+  class="relative py-10 transition-all duration-700 bg-primary" 
+  id="products-section"
+  data-active-category=""
+>
+  <div class="absolute inset-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(rgba(255,255,255,0.16) 1px, transparent 1px); background-size: 20px 20px;"></div>
+  <div class="max-w-screen-xl mx-auto px-4 md:px-8 flex flex-col">
+    
+    <!-- Products by Category -->
+    {categories.map((category, index) => {
+      const categoryProducts = products.filter(p => p.categoryId === category.id);
+      const bgColor = 'bg-white';
+      
+      return (
+        <table 
+          class="category-section category-table mb-12 transition-all duration-500 w-full border-collapse"
+          id={`category-${category.id}`}
+          data-category={category.id}
+        >
+          <!-- Category Header - repeats on each page in print -->
+          <thead class="category-header">
+            <tr>
+              <th colspan="5" class="p-0">
+                <div class={`relative rounded-xl p-5 md:p-8 mb-6 overflow-hidden border border-surface-container-high shadow-sm ${bgColor}`}>
+                  <div class="absolute inset-0 opacity-10" style="background-image: linear-gradient(120deg, rgba(16,86,165,0.08), rgba(255,255,255,0) 45%), radial-gradient(rgba(16,86,165,0.08) 1px, transparent 1px); background-size: auto, 18px 18px;"></div>
+                  <div class="absolute inset-0 opacity-15">
+                    <div class="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl"></div>
+                    <div class="absolute bottom-0 left-0 w-64 h-64 bg-secondary/10 rounded-full blur-3xl"></div>
+                  </div>
+                  
+                  <div class="relative z-10 flex items-center gap-4">
+                    <div class="w-14 h-14 md:w-16 md:h-16 bg-white rounded-xl shadow-md flex items-center justify-center overflow-hidden category-icon">
+                      {category.image ? (
+                        <img src={category.image} alt={category.name} class="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <span class="material-symbols-outlined text-3xl md:text-4xl text-primary">{category.icon}</span>
+                      )}
+                    </div>
+                    <div>
+                        <h2 class="font-headline text-xl md:text-3xl font-bold tracking-tight mb-1 text-primary text-left">
+                          {category.name}
+                        </h2>
+                      <p class="text-on-surface-variant text-sm text-left">{category.description}</p>
+                    </div>
+                  </div>
+                </div>
+              </th>
+            </tr>
+          </thead>
+
+          <!-- Products Grid -->
+          <tbody>
+            <tr>
+              <td colspan="5" class="p-0">
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 products-grid">
+            {categoryProducts.map((product, prodIndex) => (
+              <div 
+                class="product-card h-full bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col"
+                style={`animation-delay: ${prodIndex * 50}ms;`}
+                data-product-name={product.name.toLowerCase()}
+                data-product-description={product.description.toLowerCase()}
+                data-product-price={product.price}
+                data-product-images={JSON.stringify(product.images || [])}
+              >
+                <div class="aspect-square overflow-hidden bg-surface-container-highest relative product-image-container">
+                  {/* Main image */}
+                  <img 
+                    src={product.image} 
+                    alt={product.name}
+                    class="product-main-image w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                    data-index="0"
+                  />
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                  
+                  {/* Image navigation arrows - only show if product has multiple images */}
+                  {product.images && product.images.length > 0 && (
+                    <>
+                      <button 
+                        class="product-img-prev absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/90 shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-white z-10"
+                        aria-label="Imagen anterior"
+                      >
+                        <span class="material-symbols-outlined text-primary text-sm">chevron_left</span>
+                      </button>
+                      <button 
+                        class="product-img-next absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/90 shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-white z-10"
+                        aria-label="Siguiente imagen"
+                      >
+                        <span class="material-symbols-outlined text-primary text-sm">chevron_right</span>
+                      </button>
+                      
+                      {/* Dot indicators */}
+                      <div class="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+                        <span class="product-img-dot w-1.5 h-1.5 rounded-full bg-white shadow-sm cursor-pointer transition-all active" data-index="0"></span>
+                        {product.images.map((_, imgIndex) => (
+                          <span class="product-img-dot w-1.5 h-1.5 rounded-full bg-white/60 shadow-sm cursor-pointer transition-all hover:bg-white/80" data-index={imgIndex + 1}></span>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+                
+                <div class="p-2.5 md:p-3 flex flex-col flex-1">
+                  <h4 class="font-headline font-bold text-xs md:text-sm text-primary mb-1 line-clamp-2 group-hover:text-secondary transition-colors">
+                    {product.name}
+                  </h4>
+                  <p class="text-[10px] md:text-xs text-on-surface-variant mb-2 line-clamp-2">
+                    {product.description}
+                  </p>
+                  
+                  {product.variants && product.variants.length > 0 ? (
+                    <div class="mb-2">
+                      <p class="text-[9px] font-semibold text-secondary mb-1">Variantes:</p>
+                      <div class="flex flex-wrap gap-1">
+                        {product.variants.slice(0, 3).map(variant => (
+                          <span class="text-[9px] px-1.5 py-0.5 bg-surface-container rounded text-on-surface-variant">
+                            {variant}
+                          </span>
+                        ))}
+                        {product.variants.length > 3 && (
+                          <span class="text-[9px] px-1.5 py-0.5 bg-surface-container rounded text-on-surface-variant">
+                            +{product.variants.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div class="mt-auto">
+                    <div class="product-actions grid grid-cols-2 gap-1.5">
+                      <button 
+                        class="add-to-cart-btn w-full h-7 bg-surface-container-high text-primary rounded text-[10px] font-semibold hover:bg-surface-container-highest transition-all flex items-center justify-center gap-1"
+                        data-product-id={product.id}
+                        data-product-name={product.name}
+                        data-product-sku={product.sku}
+                        data-product-price={product.price}
+                        data-product-image={product.image}
+                      >
+                        <span class="material-symbols-outlined text-xs">add_shopping_cart</span>
+                        <span class="hidden sm:inline">Agregar</span>
+                      </button>
+
+                      <button 
+                        class="whatsapp-btn w-full h-7 bg-primary text-on-primary rounded text-[10px] font-semibold hover:bg-primary-container hover:scale-95 transition-all flex items-center justify-center gap-1 group-hover:shadow"
+                        data-product-id={product.id}
+                        data-product-name={product.name}
+                        data-product-sku={product.sku}
+                        data-product-price={product.price}
+                      >
+                        <span class="text-[9px] sm:text-[10px]">{product.price ? `$${(product.price / 1000).toFixed(3).replace('.', ',')}` : 'Consultar'}</span>
+                        <span class="material-symbols-outlined text-xs">arrow_forward</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      );
+    })}
+  </div>
+</section>
+
+<button id="cart-toggle" class="print-hidden fixed right-4 bottom-4 z-40 bg-primary text-on-primary rounded-full w-11 h-11 shadow-lg hover:scale-95 transition-all flex items-center justify-center">
+  <span class="material-symbols-outlined text-xl">shopping_cart</span>
+  <span id="cart-count-badge" class="absolute -top-0.5 -right-0.5 bg-secondary text-white text-[10px] font-bold min-w-4 h-4 px-0.5 rounded-full flex items-center justify-center">0</span>
+</button>
+
+<div id="cart-overlay" class="print-hidden fixed inset-0 bg-black/35 z-40 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+<aside id="cart-drawer" class="print-hidden fixed top-0 right-0 h-full w-full max-w-sm bg-white z-50 shadow-2xl translate-x-full transition-transform duration-300 flex flex-col">
+  <div class="p-3 border-b border-surface-container-high flex items-center justify-between">
+    <div>
+      <h3 class="font-headline text-lg font-bold text-primary">Carrito</h3>
+      <p id="cart-subtitle" class="text-xs text-on-surface-variant">No hay productos</p>
+    </div>
+    <button id="cart-close" class="w-8 h-8 rounded bg-surface-container hover:bg-surface-container-high flex items-center justify-center">
+      <span class="material-symbols-outlined text-lg">close</span>
+    </button>
+  </div>
+
+  <div id="cart-items" class="flex-1 overflow-y-auto p-2.5 space-y-2"></div>
+
+  <div id="cart-empty" class="flex-1 p-4 text-center text-on-surface-variant">
+    <span class="material-symbols-outlined text-4xl mb-1.5 block">shopping_cart</span>
+    <p class="text-sm">Agrega productos para enviar tu pedido.</p>
+  </div>
+
+  <div class="p-2.5 border-t border-surface-container-high space-y-1.5">
+    <button id="cart-continue-shopping" class="w-full py-2 rounded bg-surface-container text-on-surface text-sm font-semibold hover:bg-surface-container-high transition-colors flex items-center justify-center gap-1.5">
+      <span class="material-symbols-outlined text-sm">arrow_back</span>
+      <span>Seguir Comprando</span>
+    </button>
+    <button id="cart-clear" class="w-full py-2 rounded bg-surface-container text-on-surface text-sm font-semibold hover:bg-surface-container-high transition-colors">
+      Vaciar carrito
+    </button>
+    <button id="cart-send-whatsapp" class="w-full py-2 rounded bg-primary text-on-primary text-sm font-bold hover:bg-primary-container transition-colors flex items-center justify-center gap-1.5">
+      <span class="material-symbols-outlined text-sm">send</span>
+      <span>Enviar por WhatsApp</span>
+    </button>
+  </div>
+</aside>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    document.body.classList.add('catalog-mounted');
+
+    // Elements
+    const searchInput = document.getElementById('product-search') as HTMLInputElement;
+    const clearSearchBtn = document.getElementById('clear-search') as HTMLButtonElement;
+    const autocompleteDropdown = document.getElementById('autocomplete-dropdown') as HTMLDivElement;
+    const categorySections = document.querySelectorAll('.category-section');
+    const categoryCards = document.querySelectorAll('.category-card');
+    const cartToggleBtn = document.getElementById('cart-toggle') as HTMLButtonElement;
+    const cartCloseBtn = document.getElementById('cart-close') as HTMLButtonElement;
+    const cartOverlay = document.getElementById('cart-overlay') as HTMLDivElement;
+    const cartDrawer = document.getElementById('cart-drawer') as HTMLElement;
+    const cartItemsContainer = document.getElementById('cart-items') as HTMLDivElement;
+    const cartEmptyState = document.getElementById('cart-empty') as HTMLDivElement;
+    const cartCountBadge = document.getElementById('cart-count-badge') as HTMLSpanElement;
+    const cartSubtitle = document.getElementById('cart-subtitle') as HTMLParagraphElement;
+    const cartClearBtn = document.getElementById('cart-clear') as HTMLButtonElement;
+    const cartSendBtn = document.getElementById('cart-send-whatsapp') as HTMLButtonElement;
+
+    let currentSearchTerm = '';
+    let currentCategory = '';
+    let allProducts: Array<{name: string, description: string, category: string, image: string, price: number}> = [];
+    const cart = new Map<string, { id: string; name: string; sku: string; price: number; quantity: number; image: string }>();
+
+    const formatPrice = (value: number) => `$${(value / 1000).toFixed(3).replace('.', ',')} COP`;
+
+    function openCart() {
+      cartDrawer.classList.remove('translate-x-full');
+      cartOverlay.classList.remove('opacity-0', 'pointer-events-none');
+    }
+
+    function closeCart() {
+      cartDrawer.classList.add('translate-x-full');
+      cartOverlay.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    function updateCartBadge() {
+      const totalItems = Array.from(cart.values()).reduce((sum, item) => sum + item.quantity, 0);
+      cartCountBadge.textContent = String(totalItems);
+      cartCountBadge.style.display = totalItems > 0 ? 'flex' : 'none';
+      cartSubtitle.textContent = totalItems > 0 ? `${totalItems} producto${totalItems > 1 ? 's' : ''} en tu carrito` : 'No hay productos seleccionados';
+    }
+
+    function renderCart() {
+      const items = Array.from(cart.values());
+      if (items.length === 0) {
+        cartItemsContainer.innerHTML = '';
+        cartItemsContainer.style.display = 'none';
+        cartEmptyState.style.display = 'block';
+        cartSendBtn.disabled = true;
+        cartSendBtn.classList.add('opacity-60', 'cursor-not-allowed');
+        updateCartBadge();
+        return;
+      }
+
+      cartItemsContainer.style.display = 'block';
+      cartEmptyState.style.display = 'none';
+      cartSendBtn.disabled = false;
+      cartSendBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+
+      cartItemsContainer.innerHTML = items.map((item) => `
+        <div class="border border-surface-container-high rounded-lg p-2.5 bg-surface">
+          <div class="flex items-start justify-between gap-3 mb-2">
+            <div class="flex items-start gap-2.5">
+              <img src="${item.image || 'https://via.placeholder.com/80x80?text=+'}" alt="${item.name}" class="w-12 h-12 rounded-md object-cover border border-surface-container-high" loading="lazy" />
+              <div>
+              <p class="font-semibold text-on-surface leading-tight">${item.name}</p>
+              <p class="text-xs text-on-surface-variant">SKU: ${item.sku || 'N/A'}</p>
+              </div>
+            </div>
+            <button class="cart-remove text-red-500" data-product-id="${item.id}">
+              <span class="material-symbols-outlined text-lg">delete</span>
+            </button>
+          </div>
+          <div class="flex items-center justify-between">
+            <p class="font-bold text-primary">${formatPrice(item.price || 0)}</p>
+            <div class="flex items-center gap-2">
+              <button class="cart-qty-minus w-7 h-7 rounded-md bg-surface-container text-sm" data-product-id="${item.id}">-</button>
+              <span class="min-w-5 text-center font-semibold text-sm">${item.quantity}</span>
+              <button class="cart-qty-plus w-7 h-7 rounded-md bg-surface-container text-sm" data-product-id="${item.id}">+</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      updateCartBadge();
+    }
+
+    function addToCart(productId: string, name: string, sku: string, price: number, quantity: number, image: string) {
+      const existing = cart.get(productId);
+      if (existing) {
+        existing.quantity += quantity;
+      } else {
+        cart.set(productId, { id: productId, name, sku, price, quantity, image });
+      }
+      renderCart();
+    }
+
+    cartToggleBtn?.addEventListener('click', openCart);
+    cartCloseBtn?.addEventListener('click', closeCart);
+    cartOverlay?.addEventListener('click', closeCart);
+    
+    const cartContinueBtn = document.getElementById('cart-continue-shopping') as HTMLButtonElement;
+    cartContinueBtn?.addEventListener('click', closeCart);
+    
+    cartClearBtn?.addEventListener('click', () => {
+      cart.clear();
+      renderCart();
+    });
+
+    cartItemsContainer?.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement;
+      const button = target.closest('button') as HTMLButtonElement | null;
+      if (!button) return;
+
+      const productId = button.getAttribute('data-product-id');
+      if (!productId || !cart.has(productId)) return;
+
+      const item = cart.get(productId);
+      if (!item) return;
+
+      if (button.classList.contains('cart-qty-minus')) {
+        item.quantity = Math.max(1, item.quantity - 1);
+      }
+
+      if (button.classList.contains('cart-qty-plus')) {
+        item.quantity += 1;
+      }
+
+      if (button.classList.contains('cart-remove')) {
+        cart.delete(productId);
+      }
+
+      renderCart();
+    });
+
+    cartSendBtn?.addEventListener('click', () => {
+      if (cart.size === 0) return;
+
+      const lines = Array.from(cart.values()).map((item) => {
+        return `- ${item.name} (SKU: ${item.sku || 'N/A'}) x${item.quantity}`;
+      });
+
+      const message = `Buen dia, quiero comprar:\n${lines.join('\n')}`;
+      window.open(`https://wa.me/573115412230?text=${encodeURIComponent(message)}`, '_blank');
+    });
+
+    // Build products list for autocomplete
+    categorySections.forEach(section => {
+      const categoryId = section.getAttribute('data-category') || '';
+      section.querySelectorAll('.product-card').forEach(card => {
+        const name = card.getAttribute('data-product-name') || '';
+        const description = card.getAttribute('data-product-description') || '';
+        const price = parseInt(card.getAttribute('data-product-price') || '0');
+        const imgEl = card.querySelector('.product-main-image') as HTMLImageElement;
+        const image = imgEl?.src || '';
+        if (name) {
+          allProducts.push({ name, description, category: categoryId, image, price });
+        }
+      });
+    });
+
+    // Show autocomplete suggestions
+    function showAutocomplete(searchTerm: string) {
+      if (!searchTerm || searchTerm.length < 2) {
+        autocompleteDropdown.style.opacity = '0';
+        autocompleteDropdown.classList.add('pointer-events-none');
+        return;
+      }
+
+      const matches = allProducts.filter(product => 
+        product.name.includes(searchTerm.toLowerCase())
+      ).slice(0, 5); // Max 5 suggestions
+
+      if (matches.length === 0) {
+        autocompleteDropdown.style.opacity = '0';
+        autocompleteDropdown.classList.add('pointer-events-none');
+        return;
+      }
+
+      autocompleteDropdown.innerHTML = matches.map(product => `
+        <div class="autocomplete-item px-3 py-2 cursor-pointer border-b border-surface-container-highest last:border-0" data-product="${product.name}">
+          <div class="flex items-center gap-3">
+            <img src="${product.image}" alt="${product.name}" class="w-10 h-10 rounded object-cover bg-surface-container" />
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-on-surface text-sm truncate">${product.name.charAt(0).toUpperCase() + product.name.slice(1)}</div>
+              <div class="text-xs text-on-surface-variant truncate">${product.description.slice(0, 40)}...</div>
+            </div>
+            <div class="text-sm font-bold text-primary whitespace-nowrap">
+              ${product.price ? `$${(product.price / 1000).toFixed(3).replace('.', ',')}` : 'Consultar'}
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      // Add click handlers to autocomplete items
+      autocompleteDropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const productName = item.getAttribute('data-product') || '';
+          searchInput.value = productName.charAt(0).toUpperCase() + productName.slice(1);
+          currentSearchTerm = productName;
+          autocompleteDropdown.style.opacity = '0';
+          autocompleteDropdown.classList.add('pointer-events-none');
+          updateCategoryVisibility();
+        });
+      });
+
+      autocompleteDropdown.style.opacity = '1';
+      autocompleteDropdown.classList.remove('pointer-events-none');
+    }
+
+    // Update visible products based on search filter only
+    function updateCategoryVisibility() {
+      categorySections.forEach(section => {
+        const sectionElement = section as HTMLElement;
+        const productCards = section.querySelectorAll('.product-card');
+
+        let visibleInCategory = 0;
+
+        productCards.forEach(card => {
+          const cardElement = card as HTMLElement;
+          const productName = card.getAttribute('data-product-name') || '';
+          const productDescription = card.getAttribute('data-product-description') || '';
+
+          const searchMatches = !currentSearchTerm ||
+                              productName.includes(currentSearchTerm) ||
+                              productDescription.includes(currentSearchTerm);
+
+          if (searchMatches) {
+            cardElement.style.display = '';
+            visibleInCategory++;
+          } else {
+            cardElement.style.display = 'none';
+          }
+        });
+
+        // Show/hide section based on search results only
+        if (visibleInCategory > 0) {
+          sectionElement.style.display = 'block';
+        } else {
+          sectionElement.style.display = 'none';
+        }
+      });
+
+      // Update clear search button visibility
+      if (currentSearchTerm) {
+        clearSearchBtn.style.opacity = '1';
+        clearSearchBtn.classList.remove('pointer-events-none');
+      } else {
+        clearSearchBtn.style.opacity = '0';
+        clearSearchBtn.classList.add('pointer-events-none');
+      }
+      
+      // Update visual category cards
+      updateCategoryCards();
+    }
+
+    // Update visual category card states
+    function updateCategoryCards() {
+      categoryCards.forEach(card => {
+        const cardCategoryId = card.getAttribute('data-category');
+
+        if (currentCategory === cardCategoryId) {
+          card.classList.add('active-category');
+        } else {
+          card.classList.remove('active-category');
+        }
+      });
+    }
+
+    // Search input handler
+    searchInput?.addEventListener('input', (e) => {
+      currentSearchTerm = (e.target as HTMLInputElement).value.toLowerCase().trim();
+      showAutocomplete(currentSearchTerm);
+      updateCategoryVisibility();
+    });
+
+    // Hide autocomplete when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!searchInput?.contains(e.target as Node) && !autocompleteDropdown?.contains(e.target as Node)) {
+        autocompleteDropdown.style.opacity = '0';
+        autocompleteDropdown.classList.add('pointer-events-none');
+      }
+    });
+
+    // Category card click handler - scroll to section
+    categoryCards.forEach(card => {
+      card.addEventListener('click', () => {
+        const categoryId = card.getAttribute('data-category') || '';
+        
+        // Update active state
+        if (currentCategory === categoryId) {
+          currentCategory = '';
+        } else {
+          currentCategory = categoryId;
+        }
+        
+        updateCategoryCards();
+        
+        // Scroll to category section
+        if (categoryId) {
+          const targetSection = document.getElementById(`category-${categoryId}`);
+          if (targetSection) {
+            const headerOffset = 20; // Small offset from top
+            const elementPosition = targetSection.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+            
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: 'smooth'
+            });
+          }
+        } else {
+          // If "Todas" is clicked, scroll to products section
+          const productsSection = document.getElementById('products-section');
+          if (productsSection) {
+            productsSection.scrollIntoView({ behavior: 'smooth' });
+          }
+        }
+      });
+    });
+
+    // Clear search button
+    clearSearchBtn?.addEventListener('click', () => {
+      searchInput.value = '';
+      currentSearchTerm = '';
+      autocompleteDropdown.style.opacity = '0';
+      autocompleteDropdown.classList.add('pointer-events-none');
+      updateCategoryVisibility();
+      searchInput.focus();
+    });
+
+    // PDF Download / Print button
+    const downloadPdfBtn = document.getElementById('download-pdf-btn');
+    downloadPdfBtn?.addEventListener('click', async () => {
+      // 1. Reset filters so the whole catalog is visible before printing
+      if (currentSearchTerm !== '' || currentCategory !== '') {
+        searchInput.value = '';
+        currentSearchTerm = '';
+        currentCategory = '';
+        updateCategoryVisibility();
+      }
+
+      // 2. Preload all images before printing
+      const images = document.querySelectorAll('.product-main-image') as NodeListOf<HTMLImageElement>;
+      const imagePromises = Array.from(images).map(img => {
+        return new Promise<void>((resolve) => {
+          if (img.complete) {
+            resolve();
+          } else {
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+          }
+          // Force load by removing lazy loading
+          img.loading = 'eager';
+          // Trigger reload if needed
+          const src = img.src;
+          img.src = '';
+          img.src = src;
+        });
+      });
+
+      // Wait for all images to load (max 5 seconds)
+      await Promise.race([
+        Promise.all(imagePromises),
+        new Promise(resolve => setTimeout(resolve, 5000))
+      ]);
+
+      const startPrint = () => {
+        document.body.classList.add('pdf-export-mode');
+        window.print();
+      };
+
+      const handleAfterPrint = () => {
+        document.body.classList.remove('pdf-export-mode');
+        window.removeEventListener('afterprint', handleAfterPrint);
+      };
+
+      window.addEventListener('afterprint', handleAfterPrint);
+
+      // 3. Trigger browser's native print/PDF generator after images load
+      setTimeout(startPrint, 300);
+    });
+
+    // Initial display: show all categories
+    categorySections.forEach(section => {
+      (section as HTMLElement).style.display = 'block';
+    });
+
+    // WhatsApp button functionality
+    document.querySelectorAll('.whatsapp-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const productId = btn.getAttribute('data-product-id');
+        const productName = btn.getAttribute('data-product-name');
+        const productSku = btn.getAttribute('data-product-sku');
+        const productPrice = btn.getAttribute('data-product-price');
+        
+        const quantity = 1;
+        
+        // Format price
+        const priceFormatted = productPrice ? `$${(parseInt(productPrice) / 1000).toFixed(3).replace('.', ',')} COP` : 'Consultar';
+        
+        // Build WhatsApp message
+        let message = `¡Hola! Me interesa: ${productName}`;
+        
+        if (productSku) {
+          message += ` (SKU: ${productSku})`;
+        }
+        
+        message += ` - Cantidad: ${quantity} unidad${quantity > 1 ? 'es' : ''}`;
+        
+        if (productPrice) {
+          message += ` - Precio unitario: ${priceFormatted}`;
+        }
+        
+        // Open WhatsApp
+        const whatsappUrl = `https://wa.me/573115412230?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+      });
+    });
+
+    document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const productId = btn.getAttribute('data-product-id') || '';
+        const productName = btn.getAttribute('data-product-name') || 'Producto';
+        const productSku = btn.getAttribute('data-product-sku') || '';
+        const productPrice = parseInt(btn.getAttribute('data-product-price') || '0');
+        const productImage = btn.getAttribute('data-product-image') || '';
+
+        addToCart(productId, productName, productSku, productPrice, 1, productImage);
+        openCart();
+      });
+    });
+
+    // Image carousel functionality for products with multiple images
+    document.querySelectorAll('.product-card').forEach(card => {
+      const imagesData = card.getAttribute('data-product-images');
+      if (!imagesData) return;
+      
+      let images: string[] = [];
+      try {
+        images = JSON.parse(imagesData);
+      } catch {
+        return;
+      }
+      
+      // Get the main product image from the img element
+      const mainImg = card.querySelector('.product-main-image') as HTMLImageElement;
+      if (!mainImg) return;
+      
+      const mainImageSrc = mainImg.src;
+      // Build complete image array: main image + additional images
+      const allImages = [mainImageSrc, ...images];
+      
+      if (allImages.length <= 1) return;
+      
+      let currentIndex = 0;
+      const dots = card.querySelectorAll('.product-img-dot');
+      const prevBtn = card.querySelector('.product-img-prev');
+      const nextBtn = card.querySelector('.product-img-next');
+      
+      const updateImage = (index: number) => {
+        currentIndex = index;
+        mainImg.src = allImages[index];
+        
+        // Update dot indicators
+        dots.forEach((dot, i) => {
+          if (i === index) {
+            dot.classList.add('active');
+            dot.classList.remove('bg-white/60');
+            dot.classList.add('bg-white');
+          } else {
+            dot.classList.remove('active');
+            dot.classList.remove('bg-white');
+            dot.classList.add('bg-white/60');
+          }
+        });
+      };
+      
+      // Previous button
+      prevBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const newIndex = currentIndex === 0 ? allImages.length - 1 : currentIndex - 1;
+        updateImage(newIndex);
+      });
+      
+      // Next button
+      nextBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const newIndex = currentIndex === allImages.length - 1 ? 0 : currentIndex + 1;
+        updateImage(newIndex);
+      });
+      
+      // Dot indicators
+      dots.forEach((dot, index) => {
+        dot.addEventListener('click', (e) => {
+          e.stopPropagation();
+          updateImage(index);
+        });
+      });
+    });
+
+    renderCart();
+  });
+</script>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Smooth category transitions */
+  .category-section {
+    animation: sectionReveal 0.55s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .catalog-mounted #catalog-hero .max-w-screen-2xl,
+  .catalog-mounted #products-section > .max-w-screen-2xl {
+    animation: catalogEnter 620ms ease-out both;
+  }
+
+  .catalog-mounted #products-section {
+    animation: catalogBgEnter 700ms ease-out both;
+  }
+
+  @keyframes catalogEnter {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes catalogBgEnter {
+    from { filter: saturate(0.96); }
+    to { filter: saturate(1); }
+  }
+
+  @keyframes sectionReveal {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .category-card.active-category .category-avatar {
+    box-shadow: 0 0 0 2px rgba(123, 191, 98, 0.35), 0 0 10px rgba(123, 191, 98, 0.32);
+    border-color: rgba(123, 191, 98, 0.55);
+    animation: avatarPulse 1.8s ease-in-out infinite;
+  }
+
+  .category-card.active-category h3 {
+    color: var(--color-secondary);
+  }
+
+  @keyframes avatarPulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 2px rgba(123, 191, 98, 0.3), 0 0 8px rgba(123, 191, 98, 0.24);
+    }
+    50% {
+      transform: scale(1.03);
+      box-shadow: 0 0 0 2px rgba(123, 191, 98, 0.44), 0 0 14px rgba(123, 191, 98, 0.36);
+    }
+  }
+  
+  /* Autocomplete dropdown */
+  .autocomplete-dropdown {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  
+  .autocomplete-item {
+    transition: all 0.2s ease;
+  }
+  
+  .autocomplete-item:hover {
+    background: var(--color-primary-container);
+  }
+
+  /* Image carousel styles */
+  .product-img-dot.active {
+    background: white !important;
+    transform: scale(1.2);
+  }
+  
+  .product-image-container .product-img-prev,
+  .product-image-container .product-img-next {
+    transition: opacity 0.3s ease, transform 0.2s ease;
+  }
+  
+  .product-image-container .product-img-prev:hover,
+  .product-image-container .product-img-next:hover {
+    transform: translateY(-50%) scale(1.1);
+  }
+  
+  .product-main-image {
+    transition: transform 0.5s ease, opacity 0.3s ease;
+  }
+
+  /* --- PRINT STYLES FOR PDF EXPORT --- */
+  @media print {
+    @page {
+      size: landscape;
+      margin: 0.8cm;
+    }
+
+    /* Hide everything globally except the main wrapper */
+    :global(body > *:not(main)) {
+      display: none !important;
+    }
+    
+    /* Explicitly hide nav and footer just in case */
+    :global(nav), :global(footer), :global(#whatsapp-button), :global(#whatsapp-floating) {
+      display: none !important;
+    }
+    
+    /* We have a padding-top on main that ruins print pages, reset it */
+    :global(main) {
+      padding-top: 0 !important;
+    }
+
+    /* Show PDF cover page - styled */
+    #pdf-cover {
+      display: flex !important;
+      page-break-after: always;
+      break-after: page;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    #pdf-cover img {
+      height: 320px !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    #pdf-cover h1 {
+      font-size: 42px !important;
+      color: #1056a5 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    #pdf-cover .material-symbols-outlined {
+      font-size: 18px !important;
+      color: #1056a5 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    /* Hide hero inside main */
+    #catalog-hero,
+    .print-hidden,
+    #download-pdf-btn {
+      display: none !important;
+      visibility: hidden !important;
+    }
+
+    #products-section {
+      display: block !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0.5cm !important;
+      background: white !important;
+    }
+
+    /* Category table sections */
+    .category-section.category-table {
+      display: table !important;
+      width: 100% !important;
+      page-break-before: always;
+      break-before: page;
+      margin-bottom: 0.5cm !important;
+      background: transparent !important;
+    }
+
+    .category-section.category-table:first-of-type {
+      page-break-before: auto;
+      break-before: auto;
+    }
+
+    /* Category header - repeats on each page */
+    .category-header {
+      display: table-header-group !important;
+    }
+
+    .category-header th {
+      padding: 0 !important;
+      text-align: left !important;
+    }
+
+    .category-header th > div {
+      background: linear-gradient(135deg, #1056a5 0%, #0d4a8a 100%) !important;
+      border: none !important;
+      padding: 0.6rem 1rem !important;
+      margin-bottom: 0.8rem !important;
+      box-shadow: 0 2px 8px rgba(16,86,165,0.2) !important;
+      border-radius: 0.5rem !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .category-header .text-xl,
+    .category-header .md\:text-3xl {
+      font-size: 18px !important;
+      color: white !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .category-header .text-sm {
+      font-size: 11px !important;
+      color: rgba(255,255,255,0.85) !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .category-header .category-icon {
+      width: 45px !important;
+      height: 45px !important;
+      background: white !important;
+      border-radius: 0.5rem !important;
+    }
+
+    /* Products grid - 3 columns for bigger cards */
+    .products-grid {
+      display: grid !important;
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 1.2rem !important;
+      justify-content: center !important;
+      justify-items: center !important;
+      padding: 0.5rem !important;
+    }
+
+    /* Product cards - bigger and well styled */
+    .product-card {
+      break-inside: avoid;
+      page-break-inside: avoid;
+      border: 2px solid #e2e8f0 !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+      background: white !important;
+      display: flex !important;
+      flex-direction: column !important;
+      border-radius: 0.5rem !important;
+      width: 100% !important;
+      max-width: 380px !important;
+      overflow: hidden !important;
+    }
+
+    /* Image area - much bigger */
+    .product-card .aspect-square {
+      aspect-ratio: 1 !important;
+      height: 260px !important;
+      max-height: 260px !important;
+      background: #f8fafc !important;
+    }
+
+    .product-card .product-main-image {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain !important;
+      padding: 1rem !important;
+    }
+
+    /* Hide carousel controls in print */
+    .product-card .product-img-prev,
+    .product-card .product-img-next,
+    .product-card .product-img-dot {
+      display: none !important;
+    }
+
+    /* Content area */
+    .product-card > div:last-child {
+      padding: 0.8rem 1rem !important;
+      border-top: 1px solid #e2e8f0 !important;
+    }
+
+    /* Product name */
+    .product-card h4 {
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      line-height: 1.3 !important;
+      margin-bottom: 0.3rem !important;
+      color: #1e293b !important;
+    }
+
+    /* Hide description in print */
+    .product-card > div:last-child > p {
+      display: none !important;
+    }
+
+    /* Hide variants in print */
+    .product-card .mb-2 {
+      display: none !important;
+    }
+
+    /* Price area */
+    .product-card .product-actions {
+      display: block !important;
+      margin-top: 0.3rem !important;
+    }
+
+    .product-card .add-to-cart-btn {
+      display: none !important;
+    }
+
+    .product-card .whatsapp-btn {
+      width: 100% !important;
+      height: auto !important;
+      padding: 0.4rem 0.6rem !important;
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      border-radius: 0.3rem !important;
+      background: linear-gradient(135deg, #1056a5 0%, #0d4a8a 100%) !important;
+      color: white !important;
+      display: flex !important;
+      justify-content: center !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .product-card .whatsapp-btn .material-symbols-outlined {
+      display: none !important;
+    }
+
+    /* Images */
+    img {
+      max-width: 100% !important;
+      height: auto !important;
+    }
+    
+    .product-main-image {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      object-fit: cover !important;
+    }
+  }
+</style>

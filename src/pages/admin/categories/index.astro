@@ -1,0 +1,551 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import ImageUploader from '../../../components/admin/ImageUploader.astro';
+import { db } from '../../../db';
+import { categories, products } from '../../../db/schema';
+import { eq } from 'drizzle-orm';
+
+let error = '';
+let success = '';
+
+// Handle POST request for CRUD
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const action = formData.get('action');
+    
+    if (action === 'create' || action === 'update') {
+      const originalId = formData.get('originalId')?.toString();
+      const inputId = formData.get('id')?.toString().trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      const name = formData.get('name')?.toString();
+      const description = formData.get('description')?.toString() || null;
+      const icon = formData.get('icon')?.toString() || 'category';
+      const image = formData.get('image')?.toString() || null;
+      const order = parseInt(formData.get('order')?.toString() || '0');
+
+      if (!inputId || !name) {
+        error = 'El ID y el nombre son obligatorios.';
+      } else {
+        if (action === 'create') {
+          const existing = await db.select().from(categories).where(eq(categories.id, inputId)).get();
+          if (existing) {
+            error = 'Ya existe una categoría con este ID. Usa un ID diferente.';
+          } else {
+            await db.insert(categories).values({
+              id: inputId,
+              name,
+              description,
+              icon,
+              image,
+              order
+            });
+            success = 'Categoría creada con éxito.';
+          }
+        } else if (action === 'update' && originalId) {
+          // If changing ID, we must create new and delete old, or just restrict ID change.
+          // For simplicity, we restrict ID change in update. The ID field in the form is readonly.
+          await db.update(categories)
+            .set({ 
+              name, 
+              description, 
+              icon, 
+              image, 
+              order, 
+              updatedAt: new Date() 
+            })
+            .where(eq(categories.id, originalId));
+          success = 'Categoría actualizada con éxito.';
+        }
+      }
+    } else if (action === 'delete') {
+      const id = formData.get('id')?.toString();
+      if (id) {
+        await db.delete(categories).where(eq(categories.id, id));
+        success = 'Categoría eliminada con éxito.';
+      }
+    }
+  } catch (e: any) {
+    error = 'Error en la operación: ' + e.message;
+  }
+}
+
+// Fetch all categories
+const allCategories = await db.select().from(categories).orderBy(categories.order).all();
+
+// Fetch all product images for the image selector
+const allProducts = await db.select({
+  image: products.image,
+  images: products.images,
+  name: products.name,
+  sku: products.sku,
+}).from(products).where(eq(products.active, true)).all();
+
+// Build a list of all available images
+const availableImages: string[] = [];
+allProducts.forEach(product => {
+  if (product.image) availableImages.push(product.image);
+  if (product.images) {
+    try {
+      const parsedImages = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
+      if (Array.isArray(parsedImages)) {
+        availableImages.push(...parsedImages);
+      }
+    } catch (e) {
+      // Ignore parsing errors
+    }
+  }
+});
+
+// Remove duplicates
+const uniqueImages = [...new Set(availableImages)];
+---
+
+<AdminLayout title="Categorías | Admin Panel">
+  <div class="p-4 lg:p-5">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+      <div>
+        <h1 class="text-lg font-display font-bold text-on-surface mb-0.5">
+          Gestión de Categorías
+        </h1>
+        <p class="text-on-surface-variant text-xs">
+          Crea, edita o elimina las categorías del catálogo.
+        </p>
+      </div>
+      <button 
+        onclick="document.getElementById('modal-create').classList.remove('hidden')"
+        class="bg-primary text-on-primary px-3 py-1.5 rounded font-semibold text-xs flex items-center justify-center gap-1 hover:brightness-110 transition-all"
+      >
+        <span class="material-symbols-outlined text-base">add</span>
+        Nueva Categoría
+      </button>
+    </div>
+
+    {error && (
+      <div class="bg-red-100 border border-red-400 text-red-700 px-2.5 py-1.5 rounded text-xs mb-3" role="alert">
+        <span class="block sm:inline">{error}</span>
+      </div>
+    )}
+    
+    {success && (
+      <div class="bg-green-100 border border-green-400 text-green-700 px-2.5 py-1.5 rounded text-xs mb-3" role="alert">
+        <span class="block sm:inline">{success}</span>
+      </div>
+    )}
+
+    <!-- Categories Grid - compact cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+      {allCategories.map(category => (
+        <div 
+          class="category-card bg-surface rounded border border-outline-variant hover:border-primary/30 transition-all group relative"
+          data-category-id={category.id}
+          data-category-name={category.name}
+          data-category-description={category.description || ''}
+          data-category-icon={category.icon || 'category'}
+          data-category-image={category.image || ''}
+          data-category-order={category.order}
+        >
+          
+          <div class="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+            <button 
+              type="button"
+              class="edit-category-btn w-5 h-5 rounded bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-on-primary transition-colors"
+              title="Editar"
+            >
+              <span class="material-symbols-outlined text-[11px]">edit</span>
+            </button>
+            <button 
+              type="button"
+              class="delete-category-btn w-5 h-5 rounded bg-error/10 text-error flex items-center justify-center hover:bg-error hover:text-on-error transition-colors"
+              title="Eliminar"
+            >
+              <span class="material-symbols-outlined text-[11px]">delete</span>
+            </button>
+            <form id={`delete-form-${category.id}`} method="POST" class="hidden">
+              <input type="hidden" name="action" value="delete" />
+              <input type="hidden" name="id" value={category.id} />
+            </form>
+          </div>
+
+          <!-- Image/Icon -->
+          <div class="w-full aspect-square bg-surface-container-low overflow-hidden">
+            {category.image ? (
+              <img src={category.image} alt={category.name} class="w-full h-full object-cover" />
+            ) : (
+              <div class="w-full h-full flex items-center justify-center bg-primary-container/30">
+                <span class="material-symbols-outlined text-on-primary-container text-3xl">
+                  {category.icon || 'category'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <!-- Content -->
+          <div class="p-2">
+            <h3 class="text-xs font-semibold text-on-surface line-clamp-1">
+              {category.name}
+            </h3>
+            <p class="text-[10px] text-on-surface-variant line-clamp-1 leading-tight mt-0.5">
+              {category.description || 'Sin descripción'}
+            </p>
+            <div class="flex items-center justify-between mt-1.5 pt-1.5 border-t border-outline-variant/50">
+              <span class="text-[9px] text-on-surface-variant">
+                #{category.order}
+              </span>
+              <span class="text-[9px] font-mono text-on-surface-variant truncate max-w-[50px]">
+                {category.id}
+              </span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    {allCategories.length === 0 && (
+      <div class="bg-surface rounded p-6 text-center border border-outline-variant mt-3">
+        <span class="material-symbols-outlined text-on-surface-variant mb-2 block text-4xl">
+          category
+        </span>
+        <p class="text-sm font-medium text-on-surface mb-1">
+          No hay categorías registradas
+        </p>
+        <p class="text-on-surface-variant text-xs mb-3">
+          Comienza creando la primera categoría.
+        </p>
+        <button 
+          onclick="document.getElementById('modal-create').classList.remove('hidden')"
+          class="bg-primary text-on-primary px-3 py-1.5 rounded font-semibold text-xs inline-flex items-center gap-1 hover:brightness-110 transition-all"
+        >
+          <span class="material-symbols-outlined text-base">add</span>
+          Crear Categoría
+        </button>
+      </div>
+    )}
+
+  </div>
+
+  <!-- Create/Edit Modal -->
+  <div id="modal-create" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-surface w-full max-w-sm rounded shadow-2xl overflow-hidden">
+      <div class="px-4 py-2.5 border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
+        <h3 class="text-sm font-bold text-on-surface" id="modal-title">Nueva Categoría</h3>
+        <button 
+          onclick="closeModal()"
+          class="w-6 h-6 rounded hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant transition-colors"
+        >
+          <span class="material-symbols-outlined text-base">close</span>
+        </button>
+      </div>
+      
+      <form method="POST" class="p-4">
+        <input type="hidden" name="action" id="form-action" value="create" />
+        <input type="hidden" name="originalId" id="form-original-id" value="" />
+        
+        <div class="space-y-2.5">
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-[10px] font-bold text-on-surface mb-0.5">Nombre *</label>
+              <input type="text" name="name" id="input-name" required class="w-full px-2.5 py-1.5 rounded border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary bg-surface outline-none transition-all text-xs" oninput="if(document.getElementById('form-action').value === 'create') { document.getElementById('input-id').value = this.value.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''); }" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-on-surface mb-0.5">ID (Slug) *</label>
+              <input type="text" name="id" id="input-id" required pattern="[a-z0-9-]+" title="Solo letras minúsculas, números y guiones" class="w-full px-2.5 py-1.5 rounded border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary bg-surface outline-none transition-all font-mono text-[10px]" />
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-[10px] font-bold text-on-surface mb-0.5">Descripción</label>
+            <textarea name="description" id="input-description" rows="2" class="w-full px-2.5 py-1.5 rounded border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary bg-surface outline-none transition-all resize-none text-xs"></textarea>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-[10px] font-bold text-on-surface mb-0.5 flex items-center gap-1">
+                Icono 
+                <a href="https://fonts.google.com/icons?icon.set=Material+Symbols" target="_blank" class="text-primary hover:underline text-[8px] font-normal">(ver)</a>
+              </label>
+              <div class="relative">
+                <span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm" id="icon-preview">category</span>
+                <input type="text" name="icon" id="input-icon" value="category" class="w-full pl-7 pr-2 py-1.5 rounded border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary bg-surface outline-none transition-all text-xs" oninput="document.getElementById('icon-preview').textContent = this.value || 'category';" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-on-surface mb-0.5">Orden</label>
+              <input type="number" name="order" id="input-order" value="0" class="w-full px-2.5 py-1.5 rounded border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary bg-surface outline-none transition-all text-xs" />
+            </div>
+          </div>
+          
+          <ImageUploader 
+            name="image"
+            id="input-image"
+            label="Imagen de Categoría (Opcional)"
+            currentValue=""
+          />
+        </div>
+        
+        <div class="mt-4 flex justify-end gap-2">
+          <button type="button" onclick="closeModal()" class="px-3 py-1.5 rounded font-semibold text-xs text-on-surface hover:bg-surface-container transition-colors">
+            Cancelar
+          </button>
+          <button type="submit" class="bg-primary text-on-primary px-3 py-1.5 rounded font-semibold text-xs hover:brightness-110 transition-all">
+            Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Image Selector Modal -->
+  <div id="image-selector-modal" class="hidden fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-surface w-full max-w-3xl max-h-[80vh] rounded shadow-2xl overflow-hidden flex flex-col">
+      <div class="px-4 py-2.5 border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
+        <h3 class="text-sm font-bold text-on-surface">Seleccionar Imagen</h3>
+        <button 
+          onclick="closeImageSelectorModal()"
+          class="w-6 h-6 rounded hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant transition-colors"
+        >
+          <span class="material-symbols-outlined text-base">close</span>
+        </button>
+      </div>
+      
+      <div class="flex-1 overflow-y-auto p-4">
+        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2" id="image-grid">
+          {uniqueImages.map((imageUrl) => (
+            <button
+              type="button"
+              class="image-selector-item aspect-square rounded border-2 border-outline-variant hover:border-primary overflow-hidden bg-surface-container-low transition-all group relative"
+              data-image-url={imageUrl}
+            >
+              <img src={imageUrl} alt="Producto" class="w-full h-full object-cover" />
+              <div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span class="material-symbols-outlined text-white text-2xl">check_circle</span>
+              </div>
+            </button>
+          ))}
+        </div>
+        
+        {uniqueImages.length === 0 && (
+          <div class="text-center py-8 text-on-surface-variant">
+            <span class="material-symbols-outlined text-4xl mb-2 block">photo_library</span>
+            <p class="text-sm">No hay imágenes disponibles</p>
+            <p class="text-xs mt-1">Sube productos primero para tener imágenes disponibles</p>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+
+  <script is:inline define:vars={{ uniqueImages }}>
+    let currentImageInputId = null;
+    
+    function openImageSelectorModal(inputId) {
+      currentImageInputId = inputId;
+      document.getElementById('image-selector-modal').classList.remove('hidden');
+    }
+    
+    function closeImageSelectorModal() {
+      currentImageInputId = null;
+      document.getElementById('image-selector-modal').classList.add('hidden');
+    }
+    
+    // Make openImageSelectorModal global so ImageUploader can access it
+    window.openImageSelectorModal = openImageSelectorModal;
+    
+    function closeModal() {
+      document.getElementById('modal-create').classList.add('hidden');
+      // Reset form
+      const form = document.querySelector('#modal-create form');
+      if (form) form.reset();
+      document.getElementById('form-action').value = 'create';
+      document.getElementById('form-original-id').value = '';
+      document.getElementById('modal-title').textContent = 'Nueva Categoría';
+      document.getElementById('input-id').removeAttribute('readonly');
+      document.getElementById('input-id').classList.remove('bg-surface-container-high', 'cursor-not-allowed');
+      document.getElementById('icon-preview').textContent = 'category';
+    }
+
+    function openEditModal(categoryData) {
+      document.getElementById('modal-create').classList.remove('hidden');
+      document.getElementById('form-action').value = 'update';
+      document.getElementById('form-original-id').value = categoryData.id;
+      document.getElementById('modal-title').textContent = 'Editar Categoría';
+      
+      document.getElementById('input-name').value = categoryData.name || '';
+      document.getElementById('input-id').value = categoryData.id || '';
+      // Disable ID editing to prevent relationship breaking
+      document.getElementById('input-id').setAttribute('readonly', 'true');
+      document.getElementById('input-id').classList.add('bg-surface-container-high', 'cursor-not-allowed');
+      
+      document.getElementById('input-description').value = categoryData.description || '';
+      document.getElementById('input-icon').value = categoryData.icon || 'category';
+      document.getElementById('icon-preview').textContent = categoryData.icon || 'category';
+      document.getElementById('input-order').value = categoryData.order || 0;
+      
+      // Update image field
+      const imageInput = document.getElementById('input-image');
+      const imageUrl = categoryData.image || '';
+      if (imageInput) imageInput.value = imageUrl;
+      
+      // Update image preview
+      const previewImg = document.getElementById('input-image-preview-img');
+      const previewPlaceholder = document.getElementById('input-image-preview-placeholder');
+      const previewContainer = document.getElementById('input-image-preview-container');
+      
+      if (imageUrl) {
+        if (previewPlaceholder) previewPlaceholder.classList.add('hidden');
+        
+        if (!previewImg) {
+          const img = document.createElement('img');
+          img.id = 'input-image-preview-img';
+          img.src = imageUrl;
+          img.alt = 'Preview';
+          img.className = 'w-full h-full object-cover';
+          previewContainer?.appendChild(img);
+        } else {
+          previewImg.src = imageUrl;
+          previewImg.classList.remove('hidden');
+        }
+        
+        // Show remove button
+        let removeBtn = document.getElementById('input-image-remove-btn');
+        if (!removeBtn) {
+          removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.id = 'input-image-remove-btn';
+          removeBtn.className = 'absolute top-1 right-1 w-6 h-6 rounded-full bg-error/90 text-on-error flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity';
+          removeBtn.title = 'Quitar imagen';
+          removeBtn.innerHTML = '<span class="material-symbols-outlined text-sm">close</span>';
+          removeBtn.addEventListener('click', function() {
+            if (imageInput) imageInput.value = '';
+            if (previewImg) previewImg.classList.add('hidden');
+            if (previewPlaceholder) {
+              previewPlaceholder.classList.remove('hidden');
+              previewPlaceholder.innerHTML = `
+                <span class="material-symbols-outlined text-4xl">image</span>
+                <span class="text-xs">Sin imagen</span>
+              `;
+            }
+            if (removeBtn) removeBtn.classList.add('hidden');
+          });
+          previewContainer?.appendChild(removeBtn);
+        } else {
+          removeBtn.classList.remove('hidden');
+        }
+      } else {
+        if (previewImg) previewImg.classList.add('hidden');
+        if (previewPlaceholder) {
+          previewPlaceholder.classList.remove('hidden');
+          previewPlaceholder.innerHTML = `
+            <span class="material-symbols-outlined text-4xl">image</span>
+            <span class="text-xs">Sin imagen</span>
+          `;
+        }
+        const removeBtn = document.getElementById('input-image-remove-btn');
+        if (removeBtn) removeBtn.classList.add('hidden');
+      }
+    }
+
+    // Event delegation for edit and delete buttons
+    document.addEventListener('DOMContentLoaded', function() {
+      // Image selector items
+      document.querySelectorAll('.image-selector-item').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          const imageUrl = this.dataset.imageUrl;
+          if (currentImageInputId && imageUrl) {
+            // Update the hidden input
+            const hiddenInput = document.getElementById(currentImageInputId);
+            if (hiddenInput) {
+              hiddenInput.value = imageUrl;
+              
+              // Trigger preview update
+              const previewImg = document.getElementById(`${currentImageInputId}-preview-img`);
+              const previewPlaceholder = document.getElementById(`${currentImageInputId}-preview-placeholder`);
+              const previewContainer = document.getElementById(`${currentImageInputId}-preview-container`);
+              
+              if (previewPlaceholder) previewPlaceholder.classList.add('hidden');
+              
+              if (!previewImg) {
+                const img = document.createElement('img');
+                img.id = `${currentImageInputId}-preview-img`;
+                img.src = imageUrl;
+                img.alt = 'Preview';
+                img.className = 'w-full h-full object-cover';
+                previewContainer?.appendChild(img);
+              } else {
+                previewImg.src = imageUrl;
+                previewImg.classList.remove('hidden');
+              }
+              
+              // Show remove button
+              let removeBtn = document.getElementById(`${currentImageInputId}-remove-btn`);
+              if (!removeBtn) {
+                removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.id = `${currentImageInputId}-remove-btn`;
+                removeBtn.className = 'absolute top-1 right-1 w-6 h-6 rounded-full bg-error/90 text-on-error flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity';
+                removeBtn.title = 'Quitar imagen';
+                removeBtn.innerHTML = '<span class="material-symbols-outlined text-sm">close</span>';
+                removeBtn.addEventListener('click', function() {
+                  if (hiddenInput) hiddenInput.value = '';
+                  if (previewImg) previewImg.classList.add('hidden');
+                  if (previewPlaceholder) {
+                    previewPlaceholder.classList.remove('hidden');
+                    previewPlaceholder.innerHTML = `
+                      <span class="material-symbols-outlined text-4xl">image</span>
+                      <span class="text-xs">Sin imagen</span>
+                    `;
+                  }
+                  if (removeBtn) removeBtn.classList.add('hidden');
+                });
+                previewContainer?.appendChild(removeBtn);
+              } else {
+                removeBtn.classList.remove('hidden');
+              }
+            }
+            
+            closeImageSelectorModal();
+          }
+        });
+      });
+      
+      // Edit buttons
+      document.querySelectorAll('.edit-category-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const card = this.closest('.category-card');
+          if (!card) return;
+          
+          const categoryData = {
+            id: card.dataset.categoryId,
+            name: card.dataset.categoryName,
+            description: card.dataset.categoryDescription,
+            icon: card.dataset.categoryIcon,
+            image: card.dataset.categoryImage,
+            order: parseInt(card.dataset.categoryOrder) || 0
+          };
+          
+          openEditModal(categoryData);
+        });
+      });
+
+      // Delete buttons
+      document.querySelectorAll('.delete-category-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const card = this.closest('.category-card');
+          if (!card) return;
+          
+          const categoryId = card.dataset.categoryId;
+          const categoryName = card.dataset.categoryName;
+          
+          if (confirm('¿Estás seguro de que deseas eliminar la categoría "' + categoryName + '"? Los productos asociados podrían quedar sin categoría.')) {
+            const form = document.getElementById('delete-form-' + categoryId);
+            if (form) form.submit();
+          }
+        });
+      });
+    });
+  </script>
+</AdminLayout>
