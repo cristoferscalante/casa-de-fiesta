@@ -1,105 +1,84 @@
 ---
 ---
 
-<nav class="navbar-animate fixed top-0 w-full z-[100] bg-white/95 backdrop-blur-xl shadow-[0px_10px_30px_rgba(0,0,0,0.05)] border-b border-surface-container-highest/50">
-  <div class="flex justify-between items-center px-4 md:px-8 py-2.5 max-w-screen-2xl mx-auto font-['Plus_Jakarta_Sans'] tracking-tight text-sm font-semibold">
-    <a href="/" class="flex items-center z-[110]">
-      <img src="/logo-h.png" alt="Mister LyA" class="h-9 w-auto" />
+<nav class="navbar-animate glass-nav fixed top-0 z-[100] w-full border-b border-outline-variant/60 bg-surface/88 shadow-[0_14px_36px_rgba(71,54,33,0.06)]">
+  <div class="mx-auto flex max-w-screen-2xl items-center justify-between px-4 py-3 md:px-8">
+    <a href="/" class="flex items-center gap-3">
+      <img src="/logo-circle.webp" alt="Casa de Fiestas" class="h-11 w-11 rounded-full object-cover shadow-[0_4px_12px_rgba(115,59,10,0.12)] border border-secondary/15 transition-transform duration-300 hover:scale-105" />
+      <span class="hidden font-headline text-2xl font-bold text-tertiary md:inline">Casa de Fiestas</span>
     </a>
-    
-    <div class="hidden md:flex items-center gap-6">
-      <a class="text-slate-500 hover:text-primary transition-colors duration-200 flex items-center gap-1 text-[11px] font-medium" href="/">
-        <span class="material-symbols-outlined text-[10px]">home</span>
-        <span>Inicio</span>
-      </a>
-      <a class="text-slate-500 hover:text-primary transition-colors duration-200 flex items-center gap-1 text-[11px] font-medium" href="/catalogo">
-        <span class="material-symbols-outlined text-[10px]">menu_book</span>
-        <span>Catálogo</span>
-      </a>
-      <a class="text-slate-500 hover:text-primary transition-colors duration-200 flex items-center gap-1 text-[11px] font-medium" href="/#mision">
-        <span class="material-symbols-outlined text-[10px]">favorite</span>
-        <span>Nuestra Esencia</span>
-      </a>
-      <a class="text-slate-500 hover:text-primary transition-colors duration-200 flex items-center gap-1 text-[11px] font-medium" href="https://wa.me/573115412230" target="_blank">
-        <span class="material-symbols-outlined text-[10px]">chat</span>
-        <span>Contacto</span>
-      </a>
+
+    <div class="hidden items-center gap-8 md:flex">
+      <a class="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-secondary" href="/">Inicio</a>
+      <a class="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-secondary" href="/catalogo">Catalogo</a>
+      <a class="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-secondary" href="/#mision">Nosotros</a>
+      <a class="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-secondary" href="https://wa.me/573152183173" target="_blank">Contacto</a>
     </div>
-    
-    <div class="flex items-center gap-4">
-      <!-- Admin/User Icon (Desktop) -->
-      <a 
-        href="/login" 
-        class="hidden md:flex items-center justify-center hover:scale-110 transition-transform duration-300"
-        aria-label="Admin Panel"
-        title="Panel Administrativo"
+
+    <div class="flex items-center gap-3">
+      <a
+        href="https://wa.me/573152183173?text=Hola%2C%20quiero%20informacion%20sobre%20sus%20productos"
+        target="_blank"
+        class="hidden rounded-full bg-secondary px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-on-secondary transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(115,59,10,0.2)] md:inline-flex"
       >
-        <span class="material-symbols-outlined text-2xl text-primary hover:text-secondary transition-colors">badge</span>
+        WhatsApp
       </a>
-      
-      <!-- Mobile menu button -->
-      <button class="md:hidden relative w-10 h-10 flex flex-col items-center justify-center gap-1.5 z-[110]" id="mobile-menu-btn" aria-label="Toggle menu" aria-expanded="false">
-        <span class="hamburger-line w-6 h-0.5 bg-primary transition-all duration-300"></span>
-        <span class="hamburger-line w-6 h-0.5 bg-primary transition-all duration-300"></span>
-        <span class="hamburger-line w-6 h-0.5 bg-primary transition-all duration-300"></span>
+      <a
+        href="/login"
+        class="hidden h-10 w-10 items-center justify-center rounded-full border border-outline-variant bg-surface-container-low text-primary transition-colors hover:bg-surface-container md:flex"
+        aria-label="Panel administrativo"
+        title="Panel administrativo"
+      >
+        <span class="material-symbols-outlined text-xl">badge</span>
+      </a>
+
+      <button class="relative flex h-10 w-10 flex-col items-center justify-center gap-1.5 md:hidden" id="mobile-menu-btn" aria-label="Abrir menu" aria-expanded="false">
+        <span class="hamburger-line h-0.5 w-6 bg-primary transition-all duration-300"></span>
+        <span class="hamburger-line h-0.5 w-6 bg-primary transition-all duration-300"></span>
+        <span class="hamburger-line h-0.5 w-6 bg-primary transition-all duration-300"></span>
       </button>
     </div>
   </div>
 </nav>
 
-<!-- Mobile menu overlay - OUTSIDE nav for proper z-index stacking -->
-<div id="mobile-menu" class="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 z-[9999]">
-  <!-- Slide-in menu panel -->
-  <div id="mobile-menu-panel" class="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-white shadow-2xl transform translate-x-full transition-transform duration-300 overflow-y-auto z-[10000]">
-    <!-- Close button at top -->
-    <div class="flex items-center justify-between p-4 border-b border-gray-100 bg-white">
-      <img src="/logo-h.png" alt="Mister LyA" class="h-8 w-auto" />
-      <button id="mobile-menu-close" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
-        <span class="material-symbols-outlined text-xl text-gray-600">close</span>
+<div id="mobile-menu" class="fixed inset-0 z-[9999] bg-on-surface/40 opacity-0 pointer-events-none backdrop-blur-sm transition-opacity duration-300 md:hidden">
+  <div id="mobile-menu-panel" class="absolute right-0 top-0 flex h-full w-80 max-w-[86vw] translate-x-full flex-col bg-[linear-gradient(180deg,#fffdf7_0%,#f3ebde_100%)] p-5 shadow-2xl transition-transform duration-300">
+    <div class="mb-6 flex items-center justify-between">
+      <img src="/logo-circle.webp" alt="Casa de Fiestas" class="h-12 w-12 rounded-full object-cover shadow-[0_4px_12px_rgba(115,59,10,0.12)] border border-secondary/15" />
+      <button id="mobile-menu-close" class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-low text-tertiary">
+        <span class="material-symbols-outlined text-xl">close</span>
       </button>
     </div>
-    
-    <div class="flex flex-col h-[calc(100%-72px)] pt-4 px-6 bg-white">
-      <!-- Menu items -->
-      <div class="flex flex-col gap-1">
-        <a class="menu-item group flex items-center gap-4 text-slate-700 hover:text-primary hover:bg-primary/5 transition-all py-3.5 px-3 rounded-xl" href="/">
-          <span class="material-symbols-outlined text-xl text-primary">home</span>
-          <span class="font-semibold text-base">Inicio</span>
-          <span class="material-symbols-outlined ml-auto text-slate-400 group-hover:translate-x-1 transition-transform text-lg">arrow_forward</span>
-        </a>
-        <a class="menu-item group flex items-center gap-4 text-slate-700 hover:text-primary hover:bg-primary/5 transition-all py-3.5 px-3 rounded-xl" href="/catalogo">
-          <span class="material-symbols-outlined text-xl text-primary">grid_view</span>
-          <span class="font-semibold text-base">Catálogo</span>
-          <span class="material-symbols-outlined ml-auto text-slate-400 group-hover:translate-x-1 transition-transform text-lg">arrow_forward</span>
-        </a>
-        <a class="menu-item group flex items-center gap-4 text-slate-700 hover:text-primary hover:bg-primary/5 transition-all py-3.5 px-3 rounded-xl" href="/#mision">
-          <span class="material-symbols-outlined text-xl text-primary">stars</span>
-          <span class="font-semibold text-base">Nuestra Esencia</span>
-          <span class="material-symbols-outlined ml-auto text-slate-400 group-hover:translate-x-1 transition-transform text-lg">arrow_forward</span>
-        </a>
-        <a class="menu-item group flex items-center gap-4 text-slate-700 hover:text-primary hover:bg-primary/5 transition-all py-3.5 px-3 rounded-xl" href="https://wa.me/573115412230" target="_blank">
-          <span class="material-symbols-outlined text-xl text-green-600">chat</span>
-          <span class="font-semibold text-base">Contacto</span>
-          <span class="material-symbols-outlined ml-auto text-slate-400 group-hover:translate-x-1 transition-transform text-lg">open_in_new</span>
-        </a>
-        <a class="menu-item group flex items-center gap-4 text-slate-700 hover:text-primary hover:bg-primary/5 transition-all py-3.5 px-3 rounded-xl" href="/login">
-          <span class="material-symbols-outlined text-xl text-primary">admin_panel_settings</span>
-          <span class="font-semibold text-base">Panel Admin</span>
-          <span class="material-symbols-outlined ml-auto text-slate-400 group-hover:translate-x-1 transition-transform text-lg">arrow_forward</span>
-        </a>
-      </div>
-      
-      <!-- WhatsApp CTA -->
-      <div class="mt-auto mb-6 pt-4">
-        <a href="https://wa.me/573115412230" target="_blank" class="flex items-center justify-center gap-3 bg-green-600 text-white rounded-xl py-3.5 px-5 hover:bg-green-700 transition-all shadow-lg hover:shadow-xl">
-          <span class="material-symbols-outlined text-xl">phone</span>
-          <span class="font-bold text-sm">311 541 2230</span>
-        </a>
-      </div>
+
+    <div class="space-y-2">
+      <a class="menu-item flex items-center justify-between rounded-[1.25rem] bg-white/70 px-4 py-4 text-sm font-semibold text-tertiary transition-colors hover:bg-white" href="/">
+        <span>Inicio</span>
+        <span class="material-symbols-outlined text-base text-secondary">arrow_forward</span>
+      </a>
+      <a class="menu-item flex items-center justify-between rounded-[1.25rem] bg-white/70 px-4 py-4 text-sm font-semibold text-tertiary transition-colors hover:bg-white" href="/catalogo">
+        <span>Catalogo</span>
+        <span class="material-symbols-outlined text-base text-secondary">arrow_forward</span>
+      </a>
+      <a class="menu-item flex items-center justify-between rounded-[1.25rem] bg-white/70 px-4 py-4 text-sm font-semibold text-tertiary transition-colors hover:bg-white" href="/#mision">
+        <span>Nosotros</span>
+        <span class="material-symbols-outlined text-base text-secondary">arrow_forward</span>
+      </a>
+      <a class="menu-item flex items-center justify-between rounded-[1.25rem] bg-white/70 px-4 py-4 text-sm font-semibold text-tertiary transition-colors hover:bg-white" href="/login">
+        <span>Admin</span>
+        <span class="material-symbols-outlined text-base text-secondary">arrow_forward</span>
+      </a>
     </div>
+
+    <a
+      href="https://wa.me/573152183173"
+      target="_blank"
+      class="mt-auto inline-flex items-center justify-center gap-2 rounded-full bg-secondary px-5 py-3.5 text-sm font-bold text-on-secondary shadow-[0_16px_38px_rgba(115,59,10,0.2)]"
+    >
+      <span class="material-symbols-outlined text-lg">chat</span>
+      315 218 3173
+    </a>
   </div>
 </div>
-</nav>
 
 <script>
   const mobileMenuBtn = document.getElementById('mobile-menu-btn');
@@ -107,35 +86,31 @@
   const mobileMenu = document.getElementById('mobile-menu');
   const mobileMenuPanel = document.getElementById('mobile-menu-panel');
   const hamburgerLines = mobileMenuBtn?.querySelectorAll('.hamburger-line');
-  
+
   function toggleMenu() {
     const isOpen = mobileMenu?.classList.contains('opacity-100');
-    
+
     if (isOpen) {
-      // Close menu
       mobileMenu?.classList.remove('opacity-100');
       mobileMenu?.classList.add('opacity-0', 'pointer-events-none');
       mobileMenuPanel?.classList.remove('translate-x-0');
       mobileMenuPanel?.classList.add('translate-x-full');
       mobileMenuBtn?.setAttribute('aria-expanded', 'false');
       document.body.style.overflow = '';
-      
-      // Animate hamburger back to normal
+
       if (hamburgerLines) {
         hamburgerLines[0].classList.remove('rotate-45', 'translate-y-2');
         hamburgerLines[1].classList.remove('opacity-0');
         hamburgerLines[2].classList.remove('-rotate-45', '-translate-y-2');
       }
     } else {
-      // Open menu
       mobileMenu?.classList.remove('opacity-0', 'pointer-events-none');
       mobileMenu?.classList.add('opacity-100');
       mobileMenuPanel?.classList.remove('translate-x-full');
       mobileMenuPanel?.classList.add('translate-x-0');
       mobileMenuBtn?.setAttribute('aria-expanded', 'true');
       document.body.style.overflow = 'hidden';
-      
-      // Animate hamburger to X
+
       if (hamburgerLines) {
         hamburgerLines[0].classList.add('rotate-45', 'translate-y-2');
         hamburgerLines[1].classList.add('opacity-0');
@@ -143,28 +118,25 @@
       }
     }
   }
-  
+
   mobileMenuBtn?.addEventListener('click', toggleMenu);
   mobileMenuClose?.addEventListener('click', toggleMenu);
-  
-  // Close menu when clicking overlay
-  mobileMenu?.addEventListener('click', (e) => {
-    if (e.target === mobileMenu) {
+
+  mobileMenu?.addEventListener('click', (event) => {
+    if (event.target === mobileMenu) {
       toggleMenu();
     }
   });
-  
-  // Close menu when clicking on a link
+
   const menuLinks = mobileMenuPanel?.querySelectorAll('a');
-  menuLinks?.forEach(link => {
+  menuLinks?.forEach((link) => {
     link.addEventListener('click', () => {
       toggleMenu();
     });
   });
-  
-  // Close menu on escape key
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && mobileMenu?.classList.contains('opacity-100')) {
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && mobileMenu?.classList.contains('opacity-100')) {
       toggleMenu();
     }
   });
@@ -174,7 +146,7 @@
   .navbar-animate {
     animation: slideDown 0.6s ease-out forwards;
   }
-  
+
   @keyframes slideDown {
     from {
       transform: translateY(-100%);

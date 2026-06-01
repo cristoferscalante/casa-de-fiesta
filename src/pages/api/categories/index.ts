@@ -1,14 +1,15 @@
 import type { APIRoute } from 'astro';
-import { db } from '../../../db';
-import { categories } from '../../../db/schema';
+import { supabase } from '../../../lib/supabase';
 
 // GET /api/categories - List all categories
 export const GET: APIRoute = async () => {
   try {
-    const allCategories = await db.select()
-      .from(categories)
-      .orderBy(categories.order)
-      .all();
+    const { data: allCategories, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('order', { ascending: true });
+
+    if (error) throw error;
 
     return new Response(JSON.stringify(allCategories), {
       status: 200,

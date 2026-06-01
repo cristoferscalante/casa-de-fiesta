@@ -1,3 +1,9 @@
+// Bridge Astro's import.meta.env to Node's process.env for the libSQL client
+if (typeof process !== 'undefined' && typeof import.meta !== 'undefined' && import.meta.env) {
+  process.env.DATABASE_URL = import.meta.env.DATABASE_URL || process.env.DATABASE_URL;
+  process.env.DATABASE_AUTH_TOKEN = import.meta.env.DATABASE_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN;
+}
+
 import { createClient } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 import * as schema from './schema';

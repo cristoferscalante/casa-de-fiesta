@@ -1,20 +1,28 @@
 ---
 import AdminLayout from '../../../layouts/AdminLayout.astro';
-import { db } from '../../../db';
-import { products, categories } from '../../../db/schema';
-import { eq } from 'drizzle-orm';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 // Fetch all products with category info
-const allProducts = await db.select({
-  product: products,
-  categoryName: categories.name,
-}).from(products)
-  .leftJoin(categories, eq(products.categoryId, categories.id))
-  .orderBy(products.order)
-  .all();
+const { data: productsData } = await supabaseAdmin
+  .from('products')
+  .select('*, categories(name)')
+  .order('order', { ascending: true });
+
+const allProducts = (productsData || []).map((p: any) => ({
+  product: {
+    ...p,
+    categoryId: p.category_id,
+  },
+  categoryName: p.categories?.name || 'Sin categoría',
+}));
 
 // Fetch all categories for filter
-const allCategories = await db.select().from(categories).orderBy(categories.name).all();
+const { data: categoriesData } = await supabaseAdmin
+  .from('categories')
+  .select('*')
+  .order('name', { ascending: true });
+
+const allCategories = categoriesData || [];
 ---
 
 <AdminLayout title="Productos | Admin Panel">

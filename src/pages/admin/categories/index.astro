@@ -1,9 +1,7 @@
 ---
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import ImageUploader from '../../../components/admin/ImageUploader.astro';
-import { db } from '../../../db';
-import { categories, products } from '../../../db/schema';
-import { eq } from 'drizzle-orm';
+import { supabase, supabaseAdmin } from '../../../lib/supabase';
 
 let error = '';
 let success = '';
@@ -27,40 +25,55 @@ if (Astro.request.method === 'POST') {
         error = 'El ID y el nombre son obligatorios.';
       } else {
         if (action === 'create') {
-          const existing = await db.select().from(categories).where(eq(categories.id, inputId)).get();
+          // Check if category already exists
+          const { data: existing } = await supabaseAdmin
+            .from('categories')
+            .select('id')
+            .eq('id', inputId)
+            .maybeSingle();
+
           if (existing) {
             error = 'Ya existe una categoría con este ID. Usa un ID diferente.';
           } else {
-            await db.insert(categories).values({
-              id: inputId,
-              name,
-              description,
-              icon,
-              image,
-              order
-            });
+            const { error: insertError } = await supabaseAdmin
+              .from('categories')
+              .insert({
+                id: inputId,
+                name,
+                description,
+                icon,
+                image,
+                order
+              });
+
+            if (insertError) throw insertError;
             success = 'Categoría creada con éxito.';
           }
         } else if (action === 'update' && originalId) {
-          // If changing ID, we must create new and delete old, or just restrict ID change.
-          // For simplicity, we restrict ID change in update. The ID field in the form is readonly.
-          await db.update(categories)
-            .set({ 
+          const { error: updateError } = await supabaseAdmin
+            .from('categories')
+            .update({ 
               name, 
               description, 
               icon, 
               image, 
-              order, 
-              updatedAt: new Date() 
+              order
             })
-            .where(eq(categories.id, originalId));
+            .eq('id', originalId);
+
+          if (updateError) throw updateError;
           success = 'Categoría actualizada con éxito.';
         }
       }
     } else if (action === 'delete') {
       const id = formData.get('id')?.toString();
       if (id) {
-        await db.delete(categories).where(eq(categories.id, id));
+        const { error: deleteError } = await supabaseAdmin
+          .from('categories')
+          .delete()
+          .eq('id', id);
+
+        if (deleteError) throw deleteError;
         success = 'Categoría eliminada con éxito.';
       }
     }
@@ -70,28 +83,42 @@ if (Astro.request.method === 'POST') {
 }
 
 // Fetch all categories
-const allCategories = await db.select().from(categories).orderBy(categories.order).all();
+const { data: categoriesData } = await supabaseAdmin
+  .from('categories')
+  .select('*')
+  .order('order', { ascending: true });
+
+const allCategories = categoriesData || [];
 
 // Fetch all product images for the image selector
-const allProducts = await db.select({
-  image: products.image,
-  images: products.images,
-  name: products.name,
-  sku: products.sku,
-}).from(products).where(eq(products.active, true)).all();
+const { data: productsData } = await supabaseAdmin
+  .from('products')
+  .select('image, images, name, sku')
+  .eq('active', true);
+
+const allProducts = productsData || [];
+
+// Helper to safely parse JSON field
+const parseJsonField = (value: unknown, fallback: any) => {
+  if (value == null) return fallback;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return fallback;
+    }
+  }
+  return value;
+};
 
 // Build a list of all available images
 const availableImages: string[] = [];
 allProducts.forEach(product => {
   if (product.image) availableImages.push(product.image);
   if (product.images) {
-    try {
-      const parsedImages = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
-      if (Array.isArray(parsedImages)) {
-        availableImages.push(...parsedImages);
-      }
-    } catch (e) {
-      // Ignore parsing errors
+    const parsedImages = parseJsonField(product.images, null);
+    if (Array.isArray(parsedImages)) {
+      availableImages.push(...parsedImages);
     }
   }
 });
@@ -122,13 +149,13 @@ const uniqueImages = [...new Set(availableImages)];
     </div>
 
     {error && (
-      <div class="bg-red-100 border border-red-400 text-red-700 px-2.5 py-1.5 rounded text-xs mb-3" role="alert">
+      <div class="bg-error-container border border-outline-variant text-on-error-container px-2.5 py-1.5 rounded text-xs mb-3" role="alert">
         <span class="block sm:inline">{error}</span>
       </div>
     )}
     
     {success && (
-      <div class="bg-green-100 border border-green-400 text-green-700 px-2.5 py-1.5 rounded text-xs mb-3" role="alert">
+      <div class="bg-secondary-container border border-outline-variant text-on-secondary-container px-2.5 py-1.5 rounded text-xs mb-3" role="alert">
         <span class="block sm:inline">{success}</span>
       </div>
     )}
@@ -225,7 +252,7 @@ const uniqueImages = [...new Set(availableImages)];
   </div>
 
   <!-- Create/Edit Modal -->
-  <div id="modal-create" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-create" class="hidden fixed inset-0 z-50 bg-on-surface/50 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-surface w-full max-w-sm rounded shadow-2xl overflow-hidden">
       <div class="px-4 py-2.5 border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
         <h3 class="text-sm font-bold text-on-surface" id="modal-title">Nueva Categoría</h3>
@@ -296,7 +323,7 @@ const uniqueImages = [...new Set(availableImages)];
   </div>
 
   <!-- Image Selector Modal -->
-  <div id="image-selector-modal" class="hidden fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="image-selector-modal" class="hidden fixed inset-0 z-[60] bg-on-surface/50 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-surface w-full max-w-3xl max-h-[80vh] rounded shadow-2xl overflow-hidden flex flex-col">
       <div class="px-4 py-2.5 border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
         <h3 class="text-sm font-bold text-on-surface">Seleccionar Imagen</h3>
@@ -318,7 +345,7 @@ const uniqueImages = [...new Set(availableImages)];
             >
               <img src={imageUrl} alt="Producto" class="w-full h-full object-cover" />
               <div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <span class="material-symbols-outlined text-white text-2xl">check_circle</span>
+                <span class="material-symbols-outlined text-on-primary text-2xl">check_circle</span>
               </div>
             </button>
           ))}

@@ -1,39 +1,188 @@
 ---
+import { products as localCatalogProducts } from '../data/catalogCasaDeFiestas';
+
+interface Props {
+  products?: any[];
+  categories?: any[];
+}
+
+const { products = [], categories = [] } = Astro.props;
+
+const parseJsonMaybe = (value: unknown, fallback: any) => {
+  if (value == null) return fallback;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return fallback;
+    }
+  }
+  return value;
+};
+
+const getProductImage = (product: any) => {
+  if (!product) return '/logo-mark.svg';
+
+  if (typeof product.image === 'string' && product.image.trim().length > 0) {
+    return product.image;
+  }
+
+  const dbImages = parseJsonMaybe(product.images, []);
+  if (Array.isArray(dbImages) && dbImages.length > 0 && typeof dbImages[0] === 'string') {
+    return dbImages[0];
+  }
+
+  const localBySku = localCatalogProducts.find((item) => item.sku === product.sku);
+  return localBySku?.image || '/logo-mark.svg';
+};
+
+const activeProducts = products.filter((product) => product?.active !== false);
+const prioritizedProducts = [...(activeProducts.length > 0 ? activeProducts : localCatalogProducts)].sort((a: any, b: any) => {
+  const aScore = a.categoryId === 'globos' || a.category === 'globos' ? 0 : 1;
+  const bScore = b.categoryId === 'globos' || b.category === 'globos' ? 0 : 1;
+  return aScore - bScore;
+});
+const heroProducts = prioritizedProducts.slice(0, 4);
+const primaryProduct = heroProducts[0];
+const secondaryProducts = heroProducts.slice(1, 4);
+const highlightedCategory =
+  categories.find((category) => heroProducts.some((product) => product.categoryId === category.id)) || categories[0];
+const totalProducts = activeProducts.length || localCatalogProducts.length;
+const totalCategories = categories.length || 7;
 ---
 
-<section class="relative px-6 py-2 md:py-4 lg:py-8 md:px-12 overflow-hidden" id="home">
-  <div class="max-w-screen-2xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center">
+<section class="relative overflow-hidden px-5 pb-12 pt-8 md:px-8 md:pb-20 md:pt-10 lg:px-12 lg:pb-24" id="home">
+  <div class="mx-auto grid max-w-screen-2xl gap-10 lg:grid-cols-[1.02fr_0.98fr] lg:items-center">
     <div class="relative z-10">
-      <h1 class="hero-title font-headline text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-primary leading-[1.1] tracking-tighter mb-8">
-        Mister LyA <br/><span class="text-secondary italic">La esencia de la limpieza</span>
+      <span class="section-kicker mb-5 inline-flex items-center gap-3 text-[11px] font-bold">
+        <span class="h-px w-10 bg-secondary"></span>
+        Globos Sempertex y decoracion
+      </span>
+
+      <h1 class="hero-title max-w-3xl font-headline text-5xl font-bold leading-[0.95] text-tertiary md:text-7xl xl:text-[6.2rem]">
+        Globos <span class="gold-text">Sempertex</span> para celebrar en grande y vender con impacto.
       </h1>
-      
-      <div class="flex flex-wrap gap-5">
-        <a class="hero-button bg-primary text-on-primary px-8 py-3.5 rounded-lg font-bold text-base transition-all active:scale-95 relative overflow-hidden group flex items-center gap-2" 
-           href="/catalogo">
-          <span class="material-symbols-outlined text-xl">menu_book</span>
-          <span class="relative z-10 inline-block transition-transform duration-300 group-hover:translate-x-1">Ver Catálogo</span>
-          <span class="material-symbols-outlined text-lg opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300">arrow_forward</span>
-          <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+
+      <p class="hero-copy mt-6 max-w-2xl text-base leading-8 text-on-surface-variant md:text-lg">
+        Nuestro fuerte son los globos Sempertex en todos los colores, tamanos y formatos: metalizados, cromados,
+        tipo tubo, bouquets, arcos y combinaciones para cumpleanos, fiestas y dias especiales. Sumamos combos
+        decorativos, arreglos listos para sorprender y accesorios como aretes, collares, pulseras y rosarios.
+      </p>
+
+      <div class="mt-6 flex flex-wrap gap-2">
+        <span class="rounded-full border border-secondary/28 bg-surface-container-low px-3 py-1 text-xs font-semibold text-tertiary">Metalizados</span>
+        <span class="rounded-full border border-secondary/28 bg-surface-container-low px-3 py-1 text-xs font-semibold text-tertiary">Tubo</span>
+        <span class="rounded-full border border-secondary/28 bg-surface-container-low px-3 py-1 text-xs font-semibold text-tertiary">Cromados</span>
+        <span class="rounded-full border border-secondary/28 bg-surface-container-low px-3 py-1 text-xs font-semibold text-tertiary">Todos los tamanos</span>
+        <span class="rounded-full border border-secondary/28 bg-surface-container-low px-3 py-1 text-xs font-semibold text-tertiary">Combos por ocasion</span>
+      </div>
+
+      <div class="hero-actions mt-8 flex flex-col gap-3 sm:flex-row">
+        <a
+          class="inline-flex items-center justify-center gap-2 rounded-full bg-secondary px-7 py-3.5 text-sm font-bold text-on-secondary shadow-[0_18px_40px_rgba(115,59,10,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_50px_rgba(115,59,10,0.24)]"
+          href="/catalogo"
+        >
+          <span class="material-symbols-outlined text-base">local_mall</span>
+          Ver catalogo
+        </a>
+        <a
+          class="inline-flex items-center justify-center gap-2 rounded-full border border-secondary/35 bg-surface/85 px-7 py-3.5 text-sm font-bold text-tertiary transition-all duration-300 hover:border-secondary hover:bg-surface-container-low"
+          href="https://wa.me/573152183173?text=Hola%2C%20quiero%20asesoria%20para%20mi%20pedido"
+          target="_blank"
+        >
+          <span class="material-symbols-outlined text-base">chat</span>
+          Cotizar por WhatsApp
         </a>
       </div>
+
+      <div class="hero-metrics mt-10 grid max-w-2xl gap-4 sm:grid-cols-3">
+        <div class="luxury-panel rounded-[1.75rem] px-5 py-5">
+          <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-secondary">Categorias</p>
+          <p class="mt-3 font-headline text-4xl font-bold text-tertiary">{totalCategories}</p>
+          <p class="mt-2 text-sm leading-6 text-on-surface-variant">Globos, combos, accesorios y detalles para cada celebracion.</p>
+        </div>
+        <div class="luxury-panel rounded-[1.75rem] px-5 py-5">
+          <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-secondary">Oferta</p>
+          <p class="mt-3 font-headline text-4xl font-bold text-tertiary">{totalProducts}+</p>
+          <p class="mt-2 text-sm leading-6 text-on-surface-variant">Referencias para decorar, regalar, combinar y vender mejor.</p>
+        </div>
+        <div class="luxury-panel rounded-[1.75rem] px-5 py-5">
+          <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-secondary">Proveedor</p>
+          <p class="mt-3 font-headline text-3xl font-bold text-tertiary">Sempertex</p>
+          <p class="mt-2 text-sm leading-6 text-on-surface-variant">Marca protagonista para arcos, bouquets, decoraciones y fiestas impactantes.</p>
+        </div>
+      </div>
     </div>
-    
-    <div class="hero-video relative md:h-[450px] lg:h-[550px] xl:h-[600px] flex items-center justify-center">
-      <div class="absolute -top-12 -right-12 w-full h-full bg-gradient-to-br from-primary/10 to-secondary/10 rounded-full blur-[100px] animate-pulse-glow"></div>
-      <div class="relative w-full max-w-2xl">
-        <div class="relative rounded-3xl overflow-hidden shadow-2xl">
-          <video 
-            id="hero-video"
-            class="w-full h-auto object-cover scale-108"
-            autoplay
-            loop
-            muted
-            playsinline
-          >
-            <source src="/v.mp4" type="video/mp4" />
-            Tu navegador no soporta el elemento de video.
-          </video>
+
+    <div class="hero-visual relative z-10">
+      <div class="absolute -left-8 top-12 hidden h-32 w-32 rounded-full bg-primary/20 blur-3xl lg:block"></div>
+      <div class="absolute -right-8 bottom-10 hidden h-44 w-44 rounded-full bg-secondary/20 blur-3xl lg:block"></div>
+
+      <div class="ambient-border luxury-panel relative overflow-hidden rounded-[2.25rem] p-4 md:p-5">
+        <div class="absolute inset-0 soft-grid opacity-20"></div>
+        <div class="relative grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
+          <article class="group relative min-h-[420px] overflow-hidden rounded-[2rem] bg-primary-container">
+            <img
+              src={getProductImage(primaryProduct)}
+              alt={primaryProduct?.name || 'Producto destacado Casa de Fiestas'}
+              class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+              loading="eager"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-[rgba(41,32,21,0.7)] via-transparent to-transparent"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-6 text-on-primary">
+              <span class="mb-3 inline-flex rounded-full border border-white/25 bg-white/12 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] backdrop-blur-sm">
+                Mas vendido
+              </span>
+              <h2 class="font-headline text-3xl font-bold leading-tight">
+                {primaryProduct?.name || 'Coleccion premium'}
+              </h2>
+              <p class="mt-2 max-w-md text-sm leading-6 text-on-primary/80">
+                {primaryProduct?.description || 'Globos con alta rotacion, color, presencia y multiples opciones para decoraciones llamativas.'}
+              </p>
+            </div>
+          </article>
+
+          <div class="grid gap-4">
+            <div class="rounded-[1.75rem] bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(239,231,216,0.92))] p-5 shadow-[0_16px_42px_rgba(71,54,33,0.08)]">
+              <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-secondary">Analisis comercial</p>
+              <p class="mt-3 font-headline text-3xl font-bold text-tertiary">
+                {highlightedCategory?.name || 'Globos Sempertex'}
+              </p>
+              <p class="mt-3 text-sm leading-6 text-on-surface-variant">
+                El producto con mas fuerza comercial es el globo: permite variedad de precio, volumen visual,
+                compra recurrente y venta cruzada con combos, anchetas, regalos y accesorios.
+              </p>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2 md:grid-cols-1">
+              {secondaryProducts.map((product) => (
+                <article class="group relative overflow-hidden rounded-[1.75rem] bg-surface-container-low">
+                  <img
+                    src={getProductImage(product)}
+                    alt={product?.name || 'Producto secundario'}
+                    class="h-44 w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  <div class="absolute inset-0 bg-gradient-to-t from-[rgba(71,54,33,0.72)] via-transparent to-transparent"></div>
+                  <div class="absolute bottom-0 left-0 right-0 p-4">
+                    <p class="font-headline text-2xl font-bold leading-none text-on-primary">{product?.name}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div class="relative mt-4 flex flex-wrap items-center gap-3 rounded-[1.5rem] bg-white/70 px-4 py-3 backdrop-blur-sm">
+          <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-on-secondary">
+            <span class="material-symbols-outlined text-lg">workspace_premium</span>
+          </span>
+          <div class="flex-1">
+            <p class="text-sm font-bold text-tertiary">Enfoque comercial mas claro</p>
+            <p class="text-sm text-on-surface-variant">
+              Ahora la web comunica primero globos Sempertex, luego arreglos por ocasion y finalmente accesorios y detalles complementarios.
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -41,75 +190,38 @@
 </section>
 
 <style>
-  .scale-108 {
-    transform: scale(1.08);
-  }
-
-  @keyframes slideInFromLeft {
-    0% {
+  @keyframes heroFadeUp {
+    from {
       opacity: 0;
-      transform: translateX(-100px);
+      transform: translateY(24px);
     }
-    100% {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-
-  @keyframes slideInFromBottom {
-    0% {
-      opacity: 0;
-      transform: translateY(80px);
-    }
-    100% {
+    to {
       opacity: 1;
       transform: translateY(0);
     }
   }
 
-  @keyframes slideInFromRight {
-    0% {
-      opacity: 0;
-      transform: translateX(150px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateX(0);
-    }
+  .hero-title,
+  .hero-copy,
+  .hero-actions,
+  .hero-metrics,
+  .hero-visual {
+    animation: heroFadeUp 700ms ease-out both;
   }
 
-  @keyframes pulseGlow {
-    0%, 100% {
-      opacity: 0.1;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.15;
-      transform: scale(1.05);
-    }
+  .hero-copy {
+    animation-delay: 120ms;
   }
 
-  .hero-title {
-    animation: slideInFromLeft 1.5s ease-out 1.3s forwards;
-    opacity: 0;
+  .hero-actions {
+    animation-delay: 220ms;
   }
 
-  .hero-button {
-    animation: slideInFromBottom 1.5s ease-out 2s forwards;
-    opacity: 0;
+  .hero-metrics {
+    animation-delay: 320ms;
   }
 
-  .hero-video {
-    animation: slideInFromRight 1.5s ease-out 0.7s forwards;
-    opacity: 0;
-  }
-
-  .animate-pulse-glow {
-    animation: pulseGlow 3s ease-in-out infinite;
-  }
-
-  .hero-button:hover {
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    transform: translateY(-2px);
+  .hero-visual {
+    animation-delay: 140ms;
   }
 </style>

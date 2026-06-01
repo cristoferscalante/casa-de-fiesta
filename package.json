@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.1",
   "engines": {
-    "node": "22.x"
+    "node": ">=22.12.0"
   },
   "scripts": {
     "dev": "astro dev",
@@ -20,6 +20,7 @@
     "@astrojs/vercel": "10.0.4",
     "@auth/core": "0.37.3",
     "@libsql/client": "0.17.2",
+    "@supabase/supabase-js": "^2.106.2",
     "astro": "6.0.8",
     "auth-astro": "4.2.0",
     "bcryptjs": "^3.0.3",

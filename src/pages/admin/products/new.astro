@@ -1,10 +1,14 @@
 ---
 import AdminLayout from '../../../layouts/AdminLayout.astro';
-import { db } from '../../../db';
-import { categories } from '../../../db/schema';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 // Fetch all categories for dropdown
-const allCategories = await db.select().from(categories).orderBy(categories.name).all();
+const { data: categoriesData } = await supabaseAdmin
+  .from('categories')
+  .select('*')
+  .order('name', { ascending: true });
+
+const allCategories = categoriesData || [];
 ---
 
 <AdminLayout title="Nuevo Producto | Admin Panel">
@@ -277,15 +281,15 @@ const allCategories = await db.select().from(categories).orderBy(categories.name
       imagesContainer.innerHTML = imageUrls.map((url, index) => `
         <div class="image-item relative aspect-square bg-surface-container rounded overflow-hidden border-2 border-outline-variant group" data-url="${url}" data-index="${index}">
           <img src="${url}" alt="Imagen ${index + 1}" class="w-full h-full object-cover" />
-          <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+          <div class="absolute inset-0 bg-on-surface/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
             ${index === 0 ? '<span class="absolute top-2 left-2 bg-primary text-on-primary text-xs px-2 py-1 rounded font-semibold">Principal</span>' : ''}
-            <button type="button" class="move-left-btn w-8 h-8 bg-white/90 rounded flex items-center justify-center hover:bg-white transition-colors ${index === 0 ? 'opacity-30 cursor-not-allowed' : ''}" title="Mover a la izquierda" ${index === 0 ? 'disabled' : ''}>
+            <button type="button" class="move-left-btn w-8 h-8 bg-surface/90 rounded flex items-center justify-center hover:bg-surface transition-colors ${index === 0 ? 'opacity-30 cursor-not-allowed' : ''}" title="Mover a la izquierda" ${index === 0 ? 'disabled' : ''}>
               <span class="material-symbols-outlined text-sm">chevron_left</span>
             </button>
-            <button type="button" class="move-right-btn w-8 h-8 bg-white/90 rounded flex items-center justify-center hover:bg-white transition-colors ${index === imageUrls.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}" title="Mover a la derecha" ${index === imageUrls.length - 1 ? 'disabled' : ''}>
+            <button type="button" class="move-right-btn w-8 h-8 bg-surface/90 rounded flex items-center justify-center hover:bg-surface transition-colors ${index === imageUrls.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}" title="Mover a la derecha" ${index === imageUrls.length - 1 ? 'disabled' : ''}>
               <span class="material-symbols-outlined text-sm">chevron_right</span>
             </button>
-            <button type="button" class="remove-image-btn w-8 h-8 bg-error text-white rounded flex items-center justify-center hover:bg-error/80 transition-colors" title="Eliminar">
+            <button type="button" class="remove-image-btn w-8 h-8 bg-error text-on-error rounded flex items-center justify-center hover:bg-error/80 transition-colors" title="Eliminar">
               <span class="material-symbols-outlined text-sm">close</span>
             </button>
           </div>

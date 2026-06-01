@@ -1,6 +1,20 @@
 import type { APIRoute } from 'astro';
-import { getSession } from 'auth-astro/server';
-import { uploadImage, validateCloudinaryConfig } from '../../lib/cloudinary';
+import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../lib/supabase';
+
+// Setup Supabase Admin Client using Service Role Key for server-side operations (bypassing RLS)
+const supabaseUrl =
+  process.env.SUPABASE_URL ||
+  import.meta.env.SUPABASE_URL ||
+  import.meta.env.PUBLIC_SUPABASE_URL ||
+  '';
+
+const supabaseServiceKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY ||
+  '';
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 // Maximum file size: 5MB
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -11,8 +25,20 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 export const POST: APIRoute = async ({ request }) => {
   try {
     // Check authentication
-    const session = await getSession(request);
-    if (!session || !session.user) {
+    const cookieHeader = request.headers.get('cookie') || '';
+    const match = cookieHeader.match(/sb-access-token=([^;]+)/);
+    const accessToken = match ? match[1] : null;
+
+    let isAuthenticated = false;
+
+    if (accessToken) {
+      const { data, error } = await supabase.auth.getUser(accessToken);
+      if (!error && data?.user) {
+        isAuthenticated = true;
+      }
+    }
+
+    if (!isAuthenticated) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         {
@@ -22,23 +48,9 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Validate Cloudinary configuration
-    if (!validateCloudinaryConfig()) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Cloudinary is not properly configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your environment variables.' 
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
     // Parse form data
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const folder = (formData.get('folder') as string) || 'mister-lya/products';
 
     if (!file) {
       return new Response(
@@ -76,19 +88,53 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Convert file to base64 for Cloudinary upload
+    // 1. Ensure the bucket 'productos' exists and is public
+    const bucketName = 'productos';
+    const { error: getBucketError } = await supabaseAdmin.storage.getBucket(bucketName);
+    if (getBucketError) {
+      // Bucket probably doesn't exist, let's create it
+      const { error: createBucketError } = await supabaseAdmin.storage.createBucket(bucketName, {
+        public: true,
+        allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'],
+        fileSizeLimit: MAX_FILE_SIZE
+      });
+      if (createBucketError) {
+        console.warn('Could not auto-create bucket:', createBucketError.message);
+      }
+    }
+
+    // 2. Prepare file data
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const base64String = `data:${file.type};base64,${buffer.toString('base64')}`;
 
-    // Upload to Cloudinary
-    const result = await uploadImage(base64String, folder);
+    // Generate unique name
+    const fileExt = file.name.split('.').pop() || 'webp';
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+    const filePath = fileName;
+
+    // 3. Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+      .from(bucketName)
+      .upload(filePath, buffer, {
+        contentType: file.type,
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    // 4. Get the public URL of the uploaded image
+    const { data: { publicUrl } } = supabaseAdmin.storage
+      .from(bucketName)
+      .getPublicUrl(filePath);
 
     return new Response(
       JSON.stringify({
         success: true,
-        url: result.url,
-        publicId: result.publicId,
+        url: publicUrl,
+        filePath: filePath,
       }),
       {
         status: 200,

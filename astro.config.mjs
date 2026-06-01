@@ -1,9 +1,11 @@
 // @ts-check
+import dotenv from 'dotenv';
 import { defineConfig } from 'astro/config';
 import tailwindcss from '@tailwindcss/postcss';
 import autoprefixer from 'autoprefixer';
 import vercel from '@astrojs/vercel';
-import auth from 'auth-astro';
+
+dotenv.config();
 
 // https://astro.build/config
 export default defineConfig({
@@ -14,7 +16,6 @@ export default defineConfig({
     },
     edgeMiddleware: false
   }),
-  integrations: [auth()],
   vite: {
     css: {
       postcss: {

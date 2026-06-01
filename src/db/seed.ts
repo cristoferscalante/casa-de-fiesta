@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import bcryptjs from 'bcryptjs';
 import dotenv from 'dotenv';
 import * as schema from './schema';
-import { categories as catalogCategories, products as catalogProducts } from '../data/catalog';
+import { categories as catalogCategories, products as catalogProducts } from '../data/catalogCasaDeFiestas';
 
 // Load environment variables explicitly
 dotenv.config();
@@ -34,18 +34,18 @@ async function seed() {
     const existingAdmin = await db
       .select()
       .from(schema.users)
-      .where(eq(schema.users.email, 'admin@misterlya.com'))
+      .where(eq(schema.users.email, 'admin@casadefiestas.com'))
       .limit(1);
 
     if (existingAdmin.length === 0) {
       const hashedPassword = await bcryptjs.hash('Admin123!', SALT_ROUNDS);
       await db.insert(schema.users).values({
-        email: 'admin@misterlya.com',
+        email: 'admin@casadefiestas.com',
         password: hashedPassword,
         name: 'Admin',
         role: 'admin',
       });
-      console.log('✅ Admin user created (email: admin@misterlya.com)\n');
+      console.log('✅ Admin user created (email: admin@casadefiestas.com)\n');
     } else {
       console.log('ℹ️  Admin user already exists, skipping...\n');
     }

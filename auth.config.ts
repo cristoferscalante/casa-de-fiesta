@@ -1,3 +1,14 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
+// Bridge the gap between Astro's import.meta.env and Node's process.env for external libraries like Auth.js
+if (typeof process !== 'undefined' && typeof import.meta !== 'undefined' && import.meta.env) {
+  process.env.AUTH_SECRET = import.meta.env.AUTH_SECRET || process.env.AUTH_SECRET;
+  process.env.AUTH_TRUST_HOST = import.meta.env.AUTH_TRUST_HOST || process.env.AUTH_TRUST_HOST;
+  process.env.DATABASE_URL = import.meta.env.DATABASE_URL || process.env.DATABASE_URL;
+  process.env.DATABASE_AUTH_TOKEN = import.meta.env.DATABASE_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN;
+}
+
 import { defineConfig } from 'auth-astro';
 import Credentials from '@auth/core/providers/credentials';
 import { db } from './src/db';
@@ -77,5 +88,5 @@ export default defineConfig({
   session: {
     strategy: 'jwt',
   },
-  secret: process.env.AUTH_SECRET || 'your-secret-key-change-in-production',
+  secret: (typeof import.meta !== 'undefined' && import.meta.env?.AUTH_SECRET) || process.env.AUTH_SECRET || 'your-secret-key-change-in-production',
 });

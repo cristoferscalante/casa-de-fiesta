@@ -1,8 +1,6 @@
 ---
 import AdminLayout from '../../../../layouts/AdminLayout.astro';
-import { db } from '../../../../db';
-import { products, categories } from '../../../../db/schema';
-import { eq } from 'drizzle-orm';
+import { supabaseAdmin } from '../../../../lib/supabase';
 
 // Get product ID from URL
 const { id } = Astro.params;
@@ -12,24 +10,49 @@ if (!id) {
 }
 
 // Fetch product
-const product = await db.select()
-  .from(products)
-  .where(eq(products.id, id))
-  .get();
+const { data: productData, error: productError } = await supabaseAdmin
+  .from('products')
+  .select('*')
+  .eq('id', id)
+  .single();
 
-if (!product) {
+if (productError || !productData) {
   return Astro.redirect('/admin/products');
 }
 
+// Map database column names to camelCase expected by component
+const product = {
+  ...productData,
+  categoryId: productData.category_id,
+};
+
 // Fetch all categories for dropdown
-const allCategories = await db.select().from(categories).orderBy(categories.name).all();
+const { data: categoriesData } = await supabaseAdmin
+  .from('categories')
+  .select('*')
+  .order('name', { ascending: true });
+
+const allCategories = categoriesData || [];
+
+// Helper to safely parse JSON field
+const parseJsonField = (value: unknown, fallback: any) => {
+  if (value == null) return fallback;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return fallback;
+    }
+  }
+  return value;
+};
 
 // Parse variants if they exist
-const variantsArray = product.variants ? JSON.parse(product.variants) : null;
+const variantsArray = parseJsonField(product.variants, null);
 const variantsString = variantsArray ? JSON.stringify(variantsArray, null, 2) : '';
 
 // Parse images array
-const imagesArray: string[] = product.images ? (typeof product.images === 'string' ? JSON.parse(product.images) : product.images) : [];
+const imagesArray: string[] = parseJsonField(product.images, []);
 // Combine main image with additional images for display
 const allImages: string[] = product.image ? [product.image, ...imagesArray] : imagesArray;
 ---
@@ -165,17 +188,17 @@ const allImages: string[] = product.image ? [product.image, ...imagesArray] : im
             {allImages.map((img, index) => (
               <div class="image-item relative aspect-square bg-surface-container rounded overflow-hidden border-2 border-outline-variant group" data-url={img}>
                 <img src={img} alt={`Imagen ${index + 1}`} class="w-full h-full object-cover" />
-                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                <div class="absolute inset-0 bg-on-surface/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                   {index === 0 && (
                     <span class="absolute top-2 left-2 bg-primary text-on-primary text-xs px-2 py-1 rounded font-semibold">Principal</span>
                   )}
-                  <button type="button" class="move-left-btn w-8 h-8 bg-white/90 rounded flex items-center justify-center hover:bg-white transition-colors" title="Mover a la izquierda">
+                  <button type="button" class="move-left-btn w-8 h-8 bg-surface/90 rounded flex items-center justify-center hover:bg-surface transition-colors" title="Mover a la izquierda">
                     <span class="material-symbols-outlined text-sm">chevron_left</span>
                   </button>
-                  <button type="button" class="move-right-btn w-8 h-8 bg-white/90 rounded flex items-center justify-center hover:bg-white transition-colors" title="Mover a la derecha">
+                  <button type="button" class="move-right-btn w-8 h-8 bg-surface/90 rounded flex items-center justify-center hover:bg-surface transition-colors" title="Mover a la derecha">
                     <span class="material-symbols-outlined text-sm">chevron_right</span>
                   </button>
-                  <button type="button" class="remove-image-btn w-8 h-8 bg-error text-white rounded flex items-center justify-center hover:bg-error/80 transition-colors" title="Eliminar">
+                  <button type="button" class="remove-image-btn w-8 h-8 bg-error text-on-error rounded flex items-center justify-center hover:bg-error/80 transition-colors" title="Eliminar">
                     <span class="material-symbols-outlined text-sm">close</span>
                   </button>
                 </div>
@@ -344,15 +367,15 @@ const allImages: string[] = product.image ? [product.image, ...imagesArray] : im
       imagesContainer.innerHTML = imageUrls.map((url, index) => `
         <div class="image-item relative aspect-square bg-surface-container rounded overflow-hidden border-2 border-outline-variant group" data-url="${url}" data-index="${index}">
           <img src="${url}" alt="Imagen ${index + 1}" class="w-full h-full object-cover" />
-          <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+          <div class="absolute inset-0 bg-on-surface/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
             ${index === 0 ? '<span class="absolute top-2 left-2 bg-primary text-on-primary text-xs px-2 py-1 rounded font-semibold">Principal</span>' : ''}
-            <button type="button" class="move-left-btn w-8 h-8 bg-white/90 rounded flex items-center justify-center hover:bg-white transition-colors ${index === 0 ? 'opacity-30 cursor-not-allowed' : ''}" title="Mover a la izquierda" ${index === 0 ? 'disabled' : ''}>
+            <button type="button" class="move-left-btn w-8 h-8 bg-surface/90 rounded flex items-center justify-center hover:bg-surface transition-colors ${index === 0 ? 'opacity-30 cursor-not-allowed' : ''}" title="Mover a la izquierda" ${index === 0 ? 'disabled' : ''}>
               <span class="material-symbols-outlined text-sm">chevron_left</span>
             </button>
-            <button type="button" class="move-right-btn w-8 h-8 bg-white/90 rounded flex items-center justify-center hover:bg-white transition-colors ${index === imageUrls.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}" title="Mover a la derecha" ${index === imageUrls.length - 1 ? 'disabled' : ''}>
+            <button type="button" class="move-right-btn w-8 h-8 bg-surface/90 rounded flex items-center justify-center hover:bg-surface transition-colors ${index === imageUrls.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}" title="Mover a la derecha" ${index === imageUrls.length - 1 ? 'disabled' : ''}>
               <span class="material-symbols-outlined text-sm">chevron_right</span>
             </button>
-            <button type="button" class="remove-image-btn w-8 h-8 bg-error text-white rounded flex items-center justify-center hover:bg-error/80 transition-colors" title="Eliminar">
+            <button type="button" class="remove-image-btn w-8 h-8 bg-error text-on-error rounded flex items-center justify-center hover:bg-error/80 transition-colors" title="Eliminar">
               <span class="material-symbols-outlined text-sm">close</span>
             </button>
           </div>

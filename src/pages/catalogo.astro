@@ -4,8 +4,7 @@ import Navbar from '../components/Navbar.astro';
 import InteractiveCatalog from '../components/InteractiveCatalog.astro';
 import Footer from '../components/Footer.astro';
 import WhatsAppButton from '../components/WhatsAppButton.astro';
-import { db } from '../db';
-import { products as productsTable, categories as categoriesTable } from '../db/schema';
+import { supabaseAdmin } from '../lib/supabase';
 
 // Fetch products and categories from database
 let products: any[] = [];
@@ -25,36 +24,25 @@ try {
 		return value;
 	};
 
-	const [allProducts, allCategories] = await Promise.all([
-		db.select({
-			id: productsTable.id,
-			sku: productsTable.sku,
-			name: productsTable.name,
-			description: productsTable.description,
-			categoryId: productsTable.categoryId,
-			price: productsTable.price,
-			image: productsTable.image,
-			images: productsTable.images,
-			variants: productsTable.variants,
-			active: productsTable.active,
-			order: productsTable.order,
-		}).from(productsTable).all(),
-		db.select()
-			.from(categoriesTable)
-			.orderBy(categoriesTable.order)
-			.all()
-	]) as any;
+	const [productsRes, categoriesRes] = await Promise.all([
+		supabaseAdmin.from('products').select('*'),
+		supabaseAdmin.from('categories').select('*').order('order', { ascending: true })
+	]);
+
+	if (productsRes.error) throw productsRes.error;
+	if (categoriesRes.error) throw categoriesRes.error;
 
 	// Parse JSON fields and filter only active products
-	products = allProducts
+	products = (productsRes.data || [])
 		.filter((p: any) => p.active === true)
 		.map((p: any) => ({
 			...p,
+			categoryId: p.category_id, // Map database snake_case to JavaScript camelCase
 			variants: parseJsonField(p.variants, null),
 			images: parseJsonField(p.images, []),
 		}));
 
-	categories = allCategories;
+	categories = categoriesRes.data || [];
 } catch (error) {
 	console.error('Error fetching data from database:', error);
 	fetchError = true;
@@ -62,8 +50,8 @@ try {
 ---
 
 <Layout 
-	title="Catálogo de Productos | Mister LyA"
-	description="Explora nuestro catálogo completo de productos de limpieza profesional. Escobas, traperos, jabones, esponjas y más."
+	title="Catálogo | Casa de Fiestas"
+	description="Explora globos Sempertex, arreglos para fiestas, combos por ocasion y accesorios especiales en nuestro catalogo."
 >
 	<Navbar />
 	

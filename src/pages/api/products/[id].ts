@@ -1,7 +1,18 @@
 import type { APIRoute } from 'astro';
-import { db } from '../../../db';
-import { products } from '../../../db/schema';
-import { eq } from 'drizzle-orm';
+import { supabase, supabaseAdmin } from '../../../lib/supabase';
+
+// Helper to safely parse JSON field
+const parseJsonField = (value: unknown, fallback: any) => {
+  if (value == null) return fallback;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return fallback;
+    }
+  }
+  return value;
+};
 
 // GET /api/products/[id] - Get a single product
 export const GET: APIRoute = async ({ params }) => {
@@ -17,12 +28,13 @@ export const GET: APIRoute = async ({ params }) => {
       });
     }
 
-    const product = await db.select()
-      .from(products)
-      .where(eq(products.id, id))
-      .get();
+    const { data: product, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-    if (!product) {
+    if (error || !product) {
       return new Response(JSON.stringify({ error: 'Product not found' }), {
         status: 404,
         headers: {
@@ -31,11 +43,12 @@ export const GET: APIRoute = async ({ params }) => {
       });
     }
 
-    // Parse variants from JSON string
+    // Parse variants and images fields
     const parsedProduct = {
       ...product,
-      variants: product.variants ? JSON.parse(product.variants) : null,
-      images: product.images ? (typeof product.images === 'string' ? JSON.parse(product.images) : product.images) : [],
+      categoryId: product.category_id,
+      variants: parseJsonField(product.variants, null),
+      images: parseJsonField(product.images, []),
     };
 
     return new Response(JSON.stringify(parsedProduct), {
@@ -72,27 +85,42 @@ export const PUT: APIRoute = async ({ params, request }) => {
     const body = await request.json();
 
     // Build update object dynamically to support partial updates
-    const updateData: any = {
-      updatedAt: new Date(),
-    };
+    const updateData: any = {};
 
     if (body.sku !== undefined) updateData.sku = body.sku;
     if (body.name !== undefined) updateData.name = body.name;
     if (body.description !== undefined) updateData.description = body.description || null;
-    if (body.categoryId !== undefined) updateData.categoryId = body.categoryId || null;
+    if (body.categoryId !== undefined) updateData.category_id = body.categoryId || null;
     if (body.price !== undefined) updateData.price = parseInt(body.price);
     if (body.image !== undefined) updateData.image = body.image || null;
-    if (body.images !== undefined) updateData.images = body.images ? JSON.stringify(body.images) : null;
+    if (body.images !== undefined) updateData.images = body.images || null;
     if (body.variants !== undefined) updateData.variants = body.variants ? JSON.stringify(body.variants) : null;
     if (body.active !== undefined) updateData.active = body.active;
     if (body.order !== undefined) updateData.order = body.order || 0;
 
-    const updated = await db.update(products)
-      .set(updateData)
-      .where(eq(products.id, id))
-      .returning();
+    const { data: updated, error: updateError } = await supabaseAdmin
+      .from('products')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
 
-    if (!updated || updated.length === 0) {
+    if (updateError) {
+      if (updateError.code === '23505') {
+        return new Response(
+          JSON.stringify({ error: 'A product with this SKU already exists' }),
+          {
+            status: 409,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+      throw updateError;
+    }
+
+    if (!updated) {
       return new Response(JSON.stringify({ error: 'Product not found' }), {
         status: 404,
         headers: {
@@ -101,7 +129,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
       });
     }
 
-    return new Response(JSON.stringify(updated[0]), {
+    return new Response(JSON.stringify(updated), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
@@ -109,20 +137,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
     });
   } catch (error: any) {
     console.error('Error updating product:', error);
-    
-    if (error.message?.includes('UNIQUE constraint failed')) {
-      return new Response(
-        JSON.stringify({ error: 'A product with this SKU already exists' }),
-        {
-          status: 409,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-    }
-    
-    return new Response(JSON.stringify({ error: 'Failed to update product' }), {
+    return new Response(JSON.stringify({ error: error.message || 'Failed to update product' }), {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
@@ -145,11 +160,15 @@ export const DELETE: APIRoute = async ({ params }) => {
       });
     }
 
-    const deleted = await db.delete(products)
-      .where(eq(products.id, id))
-      .returning();
+    const { data, error } = await supabaseAdmin
+      .from('products')
+      .delete()
+      .eq('id', id)
+      .select();
 
-    if (!deleted || deleted.length === 0) {
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
       return new Response(JSON.stringify({ error: 'Product not found' }), {
         status: 404,
         headers: {

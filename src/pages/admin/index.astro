@@ -1,12 +1,13 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
-import { db } from '../../db';
-import { products, categories } from '../../db/schema';
-import { eq } from 'drizzle-orm';
+import { supabaseAdmin } from '../../lib/supabase';
 
 // Fetch statistics
-const allProducts = await db.select().from(products).all();
-const allCategories = await db.select().from(categories).all();
+const { data: allProductsRes } = await supabaseAdmin.from('products').select('*');
+const { data: allCategoriesRes } = await supabaseAdmin.from('categories').select('*');
+
+const allProducts = allProductsRes || [];
+const allCategories = allCategoriesRes || [];
 
 const totalProducts = allProducts.length;
 const activeProducts = allProducts.filter(p => p.active).length;
@@ -26,7 +27,7 @@ const totalCategories = allCategories.length;
             Panel de Administración
           </h2>
           <p class="text-sm text-on-primary opacity-90">
-            Bienvenido al panel de control de Mister LyA
+            Bienvenido al panel de control de Casa de Fiestas
           </p>
         </div>
       </div>
