@@ -69,7 +69,12 @@ export const quotes: QuoteRecord[] = [
         value: 50000,
       },
     ],
-    images: [],
+    images: [
+      {
+        src: '/cotizaciones/arreglo-andres.jpeg',
+        alt: 'Referencia visual del arreglo para la cotizacion de Andres',
+      },
+    ],
   },
 ];
 
