@@ -5,13 +5,21 @@ interface Props {
 	title?: string;
 	description?: string;
 	robots?: string;
+	image?: string;
+	imageAlt?: string;
 }
 
 const { 
 	title = 'Casa de Fiestas | Sempertex & Detalles', 
 	description = 'Tienda física y digital especializada en celebraciones y detalles personalizados. Globos Sempertex, piñatería, regalos, desayunos sorpresa y anchetas premium.',
-	robots
+	robots,
+	image,
+	imageAlt = 'Casa de Fiestas'
 } = Astro.props;
+
+const pageUrl = Astro.url.href;
+const imageUrl = image ? new URL(image, Astro.url).href : undefined;
+const twitterCard = imageUrl ? 'summary_large_image' : 'summary';
 
 ---
 
@@ -23,6 +31,17 @@ const {
 		<meta name="description" content={description} />
 		{robots && <meta name="robots" content={robots} />}
 		<meta name="generator" content={Astro.generator} />
+		<meta property="og:type" content="website" />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:url" content={pageUrl} />
+		{imageUrl && <meta property="og:image" content={imageUrl} />}
+		{imageUrl && <meta property="og:image:alt" content={imageAlt} />}
+		<meta name="twitter:card" content={twitterCard} />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+		{imageUrl && <meta name="twitter:image" content={imageUrl} />}
+		{imageUrl && <meta name="twitter:image:alt" content={imageAlt} />}
 		
 		<!-- Favicon -->
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />

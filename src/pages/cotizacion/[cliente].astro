@@ -34,6 +34,8 @@ const hasImages = (quote?.images?.length ?? 0) > 0;
 	title={`Cotizacion para ${quote?.clientName ?? 'cliente'} | Casa de Fiestas`}
 	description={`Cotizacion personalizada para ${quote?.clientName ?? 'cliente'} con Casa de Fiestas.`}
 	robots="noindex, nofollow"
+	image={quote?.images?.[0]?.src}
+	imageAlt={quote?.images?.[0]?.alt}
 >
 	<Navbar />
 
