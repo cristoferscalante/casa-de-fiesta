@@ -4,11 +4,13 @@ import '../styles/global.css';
 interface Props {
 	title?: string;
 	description?: string;
+	robots?: string;
 }
 
 const { 
 	title = 'Casa de Fiestas | Sempertex & Detalles', 
-	description = 'Tienda física y digital especializada en celebraciones y detalles personalizados. Globos Sempertex, piñatería, regalos, desayunos sorpresa y anchetas premium.'
+	description = 'Tienda física y digital especializada en celebraciones y detalles personalizados. Globos Sempertex, piñatería, regalos, desayunos sorpresa y anchetas premium.',
+	robots
 } = Astro.props;
 
 ---
@@ -19,6 +21,7 @@ const {
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<meta name="description" content={description} />
+		{robots && <meta name="robots" content={robots} />}
 		<meta name="generator" content={Astro.generator} />
 		
 		<!-- Favicon -->
