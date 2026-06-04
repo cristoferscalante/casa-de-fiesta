@@ -38,6 +38,10 @@ export function isColorAttribute(name: string) {
   return normalizeLabel(name) === 'color';
 }
 
+export function isGenericOptionAttribute(name: string) {
+  return normalizeLabel(name) === 'opcion';
+}
+
 const uniqueValues = (values: Array<{ value: string; hex: string | null }>) => {
   const seen = new Map<string, { value: string; hex: string | null }>();
 

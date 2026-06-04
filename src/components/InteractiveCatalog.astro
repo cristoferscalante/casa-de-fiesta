@@ -4,6 +4,7 @@ import {
   getVariantDefaultSelection,
   getVariantDisplayLabel,
   getVariantGroups,
+  isGenericOptionAttribute,
   normalizeProductVariants,
 } from '../lib/product-variants';
 
@@ -331,7 +332,9 @@ const formatPrice = (value: number) =>
                     <div class="product-variant-groups mb-3 space-y-2">
                       {product.variantGroups.map((group) => (
                         <div class="space-y-1" data-variant-group={group.name}>
-                          <p class="text-[9px] font-semibold uppercase tracking-[0.16em] text-secondary">{group.name}</p>
+                          {!isGenericOptionAttribute(group.name) && (
+                            <p class="text-[9px] font-semibold uppercase tracking-[0.16em] text-secondary">{group.name}</p>
+                          )}
                           {group.isColor ? (
                             <div class="flex flex-wrap gap-2">
                               {group.values.map((entry) => (
