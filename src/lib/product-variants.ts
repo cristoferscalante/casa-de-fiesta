@@ -1,6 +1,7 @@
 export interface ProductVariantAttribute {
   name: string;
   value: string;
+  hex?: string | null;
 }
 
 export interface ProductVariant {
@@ -13,12 +14,48 @@ export interface ProductVariant {
 
 interface ProductVariantGroup {
   name: string;
-  values: string[];
+  isColor: boolean;
+  values: Array<{
+    value: string;
+    hex: string | null;
+  }>;
 }
 
 const cleanText = (value: unknown) => String(value ?? '').trim();
 
-const uniqueValues = (values: string[]) => Array.from(new Set(values.filter(Boolean)));
+const normalizeLabel = (value: unknown) =>
+  cleanText(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+const normalizeHex = (value: unknown) => {
+  const text = cleanText(value).replace('#', '');
+  return /^[0-9a-fA-F]{6}$/.test(text) ? `#${text.toUpperCase()}` : null;
+};
+
+export function isColorAttribute(name: string) {
+  return normalizeLabel(name) === 'color';
+}
+
+const uniqueValues = (values: Array<{ value: string; hex: string | null }>) => {
+  const seen = new Map<string, { value: string; hex: string | null }>();
+
+  values.forEach((entry) => {
+    if (!entry.value) return;
+    const existing = seen.get(entry.value);
+    if (!existing) {
+      seen.set(entry.value, entry);
+      return;
+    }
+
+    if (!existing.hex && entry.hex) {
+      seen.set(entry.value, entry);
+    }
+  });
+
+  return Array.from(seen.values());
+};
 
 export function getVariantDisplayLabel(variant: ProductVariant) {
   if (variant.label) return variant.label;
@@ -68,7 +105,13 @@ function normalizeVariantRecord(rawVariant: unknown, index: number): ProductVari
 
       if (!name || !value) return null;
 
-      return { name, value };
+      return {
+        name,
+        value,
+        hex: isColorAttribute(name)
+          ? normalizeHex(attributeRecord.hex || attributeRecord.colorHex)
+          : null,
+      };
     })
     .filter((attribute): attribute is ProductVariantAttribute => attribute !== null);
 
@@ -77,7 +120,11 @@ function normalizeVariantRecord(rawVariant: unknown, index: number): ProductVari
     const legacyValue = cleanText(record.value || record.name || record.label);
 
     if (legacyValue) {
-      normalizedAttributes.push({ name: legacyType, value: legacyValue });
+      normalizedAttributes.push({
+        name: legacyType,
+        value: legacyValue,
+        hex: isColorAttribute(legacyType) ? normalizeHex(record.hex || record.colorHex) : null,
+      });
     }
   }
 
@@ -105,16 +152,29 @@ function normalizeVariantRecord(rawVariant: unknown, index: number): ProductVari
 }
 
 export function getVariantGroups(variants: ProductVariant[]): ProductVariantGroup[] {
-  const groups = new Map<string, string[]>();
+  const groups = new Map<string, Array<{ value: string; hex: string | null }>>();
 
   variants.forEach((variant) => {
     variant.attributes.forEach((attribute) => {
       const existing = groups.get(attribute.name) || [];
-      groups.set(attribute.name, uniqueValues([...existing, attribute.value]));
+      groups.set(
+        attribute.name,
+        uniqueValues([
+          ...existing,
+          {
+            value: attribute.value,
+            hex: isColorAttribute(attribute.name) ? normalizeHex(attribute.hex) : null,
+          },
+        ])
+      );
     });
   });
 
-  return Array.from(groups.entries()).map(([name, values]) => ({ name, values }));
+  return Array.from(groups.entries()).map(([name, values]) => ({
+    name,
+    isColor: isColorAttribute(name),
+    values,
+  }));
 }
 
 export function getVariantDefaultSelection(variants: ProductVariant[]) {

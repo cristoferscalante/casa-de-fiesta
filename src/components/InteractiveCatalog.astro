@@ -332,19 +332,39 @@ const formatPrice = (value: number) =>
                       {product.variantGroups.map((group) => (
                         <div class="space-y-1" data-variant-group={group.name}>
                           <p class="text-[9px] font-semibold uppercase tracking-[0.16em] text-secondary">{group.name}</p>
-                          <div class="flex flex-wrap gap-1.5">
-                            {group.values.map((value) => (
-                              <button
-                                type="button"
-                                class={`variant-option-btn rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-all ${product.defaultSelection[group.name] === value ? 'border-secondary bg-secondary/12 text-secondary' : 'border-outline-variant bg-surface-container text-on-surface-variant hover:border-secondary/50 hover:text-secondary'}`}
-                                data-attribute-name={group.name}
-                                data-attribute-value={value}
-                                aria-pressed={product.defaultSelection[group.name] === value ? 'true' : 'false'}
-                              >
-                                {value}
-                              </button>
-                            ))}
-                          </div>
+                          {group.isColor ? (
+                            <div class="flex flex-wrap gap-2">
+                              {group.values.map((entry) => (
+                                <button
+                                  type="button"
+                                  class={`variant-color-btn inline-flex h-7 w-7 items-center justify-center rounded-full border-2 transition-all ${product.defaultSelection[group.name] === entry.value ? 'border-tertiary scale-110 shadow-[0_0_0_3px_rgba(166,128,83,0.18)]' : 'border-white/80 hover:scale-105'}`}
+                                  style={`background:${entry.hex || '#D9D0C1'}`}
+                                  data-attribute-name={group.name}
+                                  data-attribute-value={entry.value}
+                                  data-attribute-hex={entry.hex || ''}
+                                  aria-label={`${group.name}: ${entry.value}`}
+                                  aria-pressed={product.defaultSelection[group.name] === entry.value ? 'true' : 'false'}
+                                  title={entry.value}
+                                >
+                                  <span class={`h-2.5 w-2.5 rounded-full bg-white/90 transition-opacity ${product.defaultSelection[group.name] === entry.value ? 'opacity-100' : 'opacity-0'}`}></span>
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div class="flex flex-wrap gap-1.5">
+                              {group.values.map((entry) => (
+                                <button
+                                  type="button"
+                                  class={`variant-option-btn rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-all ${product.defaultSelection[group.name] === entry.value ? 'border-secondary bg-secondary/12 text-secondary' : 'border-outline-variant bg-surface-container text-on-surface-variant hover:border-secondary/50 hover:text-secondary'}`}
+                                  data-attribute-name={group.name}
+                                  data-attribute-value={entry.value}
+                                  aria-pressed={product.defaultSelection[group.name] === entry.value ? 'true' : 'false'}
+                                >
+                                  {entry.value}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -993,7 +1013,7 @@ const formatPrice = (value: number) =>
         });
       };
 
-      card.querySelectorAll('.variant-option-btn').forEach((button) => {
+      card.querySelectorAll('.variant-option-btn, .variant-color-btn').forEach((button) => {
         button.addEventListener('click', () => {
           const attributeName = button.getAttribute('data-attribute-name') || '';
           const attributeValue = button.getAttribute('data-attribute-value') || '';
@@ -1006,8 +1026,24 @@ const formatPrice = (value: number) =>
             option.setAttribute('aria-pressed', 'false');
           });
 
-          button.classList.remove('border-outline-variant', 'bg-surface-container', 'text-on-surface-variant');
-          button.classList.add('border-secondary', 'bg-secondary/12', 'text-secondary');
+          group?.querySelectorAll('.variant-color-btn').forEach((option) => {
+            option.classList.remove('border-tertiary', 'scale-110', 'shadow-[0_0_0_3px_rgba(166,128,83,0.18)]');
+            option.classList.add('border-white/80');
+            option.setAttribute('aria-pressed', 'false');
+            option.querySelector('span')?.classList.add('opacity-0');
+            option.querySelector('span')?.classList.remove('opacity-100');
+          });
+
+          if (button.classList.contains('variant-color-btn')) {
+            button.classList.remove('border-white/80');
+            button.classList.add('border-tertiary', 'scale-110', 'shadow-[0_0_0_3px_rgba(166,128,83,0.18)]');
+            button.querySelector('span')?.classList.remove('opacity-0');
+            button.querySelector('span')?.classList.add('opacity-100');
+          } else {
+            button.classList.remove('border-outline-variant', 'bg-surface-container', 'text-on-surface-variant');
+            button.classList.add('border-secondary', 'bg-secondary/12', 'text-secondary');
+          }
+
           button.setAttribute('aria-pressed', 'true');
 
           applyVariantState();

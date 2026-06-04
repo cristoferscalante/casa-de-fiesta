@@ -138,6 +138,13 @@ const initialValue = JSON.stringify(normalizeProductVariants(initialVariants));
         <label class="block text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant mb-2">Valor</label>
         <input type="text" class="attribute-value w-full rounded border border-outline-variant bg-surface px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="Ej: R-12" />
       </div>
+      <div class="attribute-hex-wrapper hidden md:col-span-2">
+        <label class="block text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant mb-2">Hexadecimal</label>
+        <div class="flex items-center gap-3 rounded border border-outline-variant bg-surface px-3 py-2.5">
+          <input type="color" class="attribute-hex-color h-10 w-12 cursor-pointer rounded border border-outline-variant bg-transparent p-0" value="#FFFFFF" />
+          <input type="text" class="attribute-hex w-full bg-transparent text-sm outline-none" placeholder="#F4B6D2" />
+        </div>
+      </div>
       <button type="button" class="remove-attribute-btn inline-flex h-11 w-11 items-center justify-center rounded-full bg-surface-container text-on-surface hover:bg-error-container hover:text-on-error-container transition-all" title="Eliminar atributo">
         <span class="material-symbols-outlined text-base">close</span>
       </button>
@@ -174,6 +181,20 @@ const initialValue = JSON.stringify(normalizeProductVariants(initialVariants));
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
 
+    const normalizeLabel = (value) =>
+      String(value || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+    const isColorAttribute = (value) => normalizeLabel(value) === 'color';
+
+    const normalizeHex = (value) => {
+      const text = String(value || '').trim().replace('#', '');
+      return /^[0-9a-fA-F]{6}$/.test(text) ? `#${text.toUpperCase()}` : '';
+    };
+
     const syncVariants = () => {
       const cards = Array.from(variantsContainer.querySelectorAll('.variant-card'));
 
@@ -184,10 +205,17 @@ const initialValue = JSON.stringify(normalizeProductVariants(initialVariants));
         const priceValue = card.querySelector('.variant-price')?.value?.trim() || '';
         const imageValue = card.dataset.imageUrl || '';
         const attributes = Array.from(card.querySelectorAll('.attribute-row'))
-          .map((row) => ({
-            name: row.querySelector('.attribute-name')?.value?.trim() || '',
-            value: row.querySelector('.attribute-value')?.value?.trim() || '',
-          }))
+          .map((row) => {
+            const name = row.querySelector('.attribute-name')?.value?.trim() || '';
+            const value = row.querySelector('.attribute-value')?.value?.trim() || '';
+            const hex = row.querySelector('.attribute-hex')?.value?.trim() || '';
+
+            return {
+              name,
+              value,
+              hex: isColorAttribute(name) ? normalizeHex(hex) || null : null,
+            };
+          })
           .filter((attribute) => attribute.name && attribute.value);
 
         if (attributes.length === 0) return null;
@@ -254,18 +282,55 @@ const initialValue = JSON.stringify(normalizeProductVariants(initialVariants));
       syncVariants();
     };
 
-    const createAttributeRow = (attribute = { name: 'Tamano', value: '' }) => {
+    const updateHexVisibility = (row) => {
+      const nameInput = row.querySelector('.attribute-name');
+      const hexWrapper = row.querySelector('.attribute-hex-wrapper');
+      const hexInput = row.querySelector('.attribute-hex');
+      const hexColorInput = row.querySelector('.attribute-hex-color');
+      const isColor = isColorAttribute(nameInput.value);
+
+      hexWrapper.classList.toggle('hidden', !isColor);
+
+      if (!isColor) {
+        hexInput.value = '';
+        hexColorInput.value = '#FFFFFF';
+      }
+    };
+
+    const createAttributeRow = (attribute = { name: 'Tamano', value: '', hex: null }) => {
       const fragment = attributeTemplate.content.cloneNode(true);
       const row = fragment.querySelector('.attribute-row');
       const nameInput = row.querySelector('.attribute-name');
       const valueInput = row.querySelector('.attribute-value');
+      const hexInput = row.querySelector('.attribute-hex');
+      const hexColorInput = row.querySelector('.attribute-hex-color');
       const removeBtn = row.querySelector('.remove-attribute-btn');
 
       nameInput.value = attribute.name || 'Tamano';
       valueInput.value = attribute.value || '';
+      hexInput.value = normalizeHex(attribute.hex) || '';
+      hexColorInput.value = normalizeHex(attribute.hex) || '#FFFFFF';
 
       [nameInput, valueInput].forEach((input) => {
         input.addEventListener('input', syncVariants);
+      });
+
+      nameInput.addEventListener('input', () => {
+        updateHexVisibility(row);
+        syncVariants();
+      });
+
+      hexInput.addEventListener('input', () => {
+        const normalized = normalizeHex(hexInput.value);
+        if (normalized) {
+          hexColorInput.value = normalized;
+        }
+        syncVariants();
+      });
+
+      hexColorInput.addEventListener('input', () => {
+        hexInput.value = hexColorInput.value;
+        syncVariants();
       });
 
       removeBtn.addEventListener('click', () => {
@@ -278,6 +343,8 @@ const initialValue = JSON.stringify(normalizeProductVariants(initialVariants));
 
         syncVariants();
       });
+
+      updateHexVisibility(row);
 
       return row;
     };
