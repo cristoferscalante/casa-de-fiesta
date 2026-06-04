@@ -1,6 +1,7 @@
 ---
 import AdminLayout from '../../../../layouts/AdminLayout.astro';
 import { supabaseAdmin } from '../../../../lib/supabase';
+import VariantEditor from '../../../../components/admin/VariantEditor.astro';
 
 // Get product ID from URL
 const { id } = Astro.params;
@@ -48,8 +49,7 @@ const parseJsonField = (value: unknown, fallback: any) => {
 };
 
 // Parse variants if they exist
-const variantsArray = parseJsonField(product.variants, null);
-const variantsString = variantsArray ? JSON.stringify(variantsArray, null, 2) : '';
+const variantsArray = parseJsonField(product.variants, []);
 
 // Parse images array
 const imagesArray: string[] = parseJsonField(product.images, []);
@@ -247,20 +247,7 @@ const allImages: string[] = product.image ? [product.image, ...imagesArray] : im
           </div>
         </div>
 
-        <!-- Variants -->
-        <div>
-          <label for="variants" class="block text-sm font-semibold text-on-surface mb-2">
-            Variantes (JSON)
-          </label>
-          <textarea
-            id="variants"
-            name="variants"
-            rows="3"
-            placeholder='["Cerda suave", "Cerda dura"]'
-            class="w-full px-4 py-3 bg-surface-container rounded border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none font-mono text-sm"
-          >{variantsString}</textarea>
-          <p class="mt-1 text-sm text-on-surface-variant">Array JSON de variantes (opcional)</p>
-        </div>
+        <VariantEditor initialVariants={variantsArray} />
 
         <!-- Order -->
         <div>

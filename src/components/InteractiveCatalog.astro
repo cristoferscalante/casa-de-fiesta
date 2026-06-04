@@ -1,13 +1,42 @@
 ---
+import {
+  findVariantBySelection,
+  getVariantDefaultSelection,
+  getVariantDisplayLabel,
+  getVariantGroups,
+  normalizeProductVariants,
+} from '../lib/product-variants';
+
 interface Props {
 	products: any[];
 	categories: any[];
 }
 
 const { products, categories } = Astro.props;
+const normalizedProducts = products.map((product) => {
+  const variants = normalizeProductVariants(product.variants);
+  const variantGroups = getVariantGroups(variants);
+  const defaultSelection = getVariantDefaultSelection(variants);
+  const selectedVariant = findVariantBySelection(variants, defaultSelection) || variants[0] || null;
+
+  return {
+    ...product,
+    variants,
+    variantGroups,
+    defaultSelection,
+    selectedVariant,
+  };
+});
+
 const previewCategories = categories.slice(0, 3);
-const totalProducts = products.length;
+const totalProducts = normalizedProducts.length;
 const totalCategories = categories.length;
+const formatPrice = (value: number) =>
+  new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  }).format(value);
 
 ---
 
@@ -184,7 +213,7 @@ const totalCategories = categories.length;
     
     <!-- Products by Category -->
     {categories.map((category, index) => {
-      const categoryProducts = products.filter(p => p.categoryId === category.id);
+      const categoryProducts = normalizedProducts.filter(p => p.categoryId === category.id);
       const bgColor = 'bg-surface';
       
       return (
@@ -236,7 +265,11 @@ const totalCategories = categories.length;
                 data-product-name={product.name.toLowerCase()}
                 data-product-description={product.description.toLowerCase()}
                 data-product-price={product.price}
-                data-product-images={JSON.stringify(product.images || [])}
+                data-product-base-price={product.price}
+                data-product-base-image={product.image || ''}
+                data-product-images={JSON.stringify([product.image, ...(product.images || [])].filter(Boolean))}
+                data-product-variants={JSON.stringify(product.variants || [])}
+                data-product-default-selection={JSON.stringify(product.defaultSelection || {})}
               >
                 <div class="aspect-square overflow-hidden bg-surface-container-highest relative product-image-container">
                   {/* Main image */}
@@ -283,22 +316,37 @@ const totalCategories = categories.length;
                   <p class="text-[10px] md:text-xs text-on-surface-variant mb-2 line-clamp-2">
                     {product.description}
                   </p>
-                  
-                  {product.variants && product.variants.length > 0 ? (
-                    <div class="mb-2">
-                      <p class="text-[9px] font-semibold text-secondary mb-1">Variantes:</p>
-                      <div class="flex flex-wrap gap-1">
-                        {product.variants.slice(0, 3).map(variant => (
-                          <span class="text-[9px] px-1.5 py-0.5 bg-surface-container rounded text-on-surface-variant">
-                            {variant}
-                          </span>
-                        ))}
-                        {product.variants.length > 3 && (
-                          <span class="text-[9px] px-1.5 py-0.5 bg-surface-container rounded text-on-surface-variant">
-                            +{product.variants.length - 3}
-                          </span>
-                        )}
-                      </div>
+
+                  <div class="mb-3 rounded-2xl bg-surface-container-low px-3 py-2.5">
+                    <p class="text-[9px] font-bold uppercase tracking-[0.18em] text-secondary">Precio</p>
+                    <p class="product-price mt-1 text-sm font-bold text-primary">
+                      {product.selectedVariant?.price ? formatPrice(product.selectedVariant.price) : product.price ? formatPrice(product.price) : 'Consultar'}
+                    </p>
+                    <p class="product-selected-variant mt-1 text-[10px] text-on-surface-variant">
+                      {product.selectedVariant ? getVariantDisplayLabel(product.selectedVariant) : 'Sin variante seleccionada'}
+                    </p>
+                  </div>
+                   
+                  {product.variantGroups.length > 0 ? (
+                    <div class="product-variant-groups mb-3 space-y-2">
+                      {product.variantGroups.map((group) => (
+                        <div class="space-y-1" data-variant-group={group.name}>
+                          <p class="text-[9px] font-semibold uppercase tracking-[0.16em] text-secondary">{group.name}</p>
+                          <div class="flex flex-wrap gap-1.5">
+                            {group.values.map((value) => (
+                              <button
+                                type="button"
+                                class={`variant-option-btn rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-all ${product.defaultSelection[group.name] === value ? 'border-secondary bg-secondary/12 text-secondary' : 'border-outline-variant bg-surface-container text-on-surface-variant hover:border-secondary/50 hover:text-secondary'}`}
+                                data-attribute-name={group.name}
+                                data-attribute-value={value}
+                                aria-pressed={product.defaultSelection[group.name] === value ? 'true' : 'false'}
+                              >
+                                {value}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ) : null}
 
@@ -310,7 +358,9 @@ const totalCategories = categories.length;
                         data-product-name={product.name}
                         data-product-sku={product.sku}
                         data-product-price={product.price}
-                        data-product-image={product.image}
+                        data-product-image={product.selectedVariant?.image || product.image}
+                        data-product-variant-id={product.selectedVariant?.id || ''}
+                        data-product-variant-label={product.selectedVariant ? getVariantDisplayLabel(product.selectedVariant) : ''}
                       >
                         <span class="material-symbols-outlined text-xs">add_shopping_cart</span>
                         <span class="hidden sm:inline">Agregar</span>
@@ -321,9 +371,11 @@ const totalCategories = categories.length;
                         data-product-id={product.id}
                         data-product-name={product.name}
                         data-product-sku={product.sku}
-                        data-product-price={product.price}
+                        data-product-price={product.selectedVariant?.price || product.price}
+                        data-product-variant-id={product.selectedVariant?.id || ''}
+                        data-product-variant-label={product.selectedVariant ? getVariantDisplayLabel(product.selectedVariant) : ''}
                       >
-                        <span class="text-[9px] sm:text-[10px]">{product.price ? `$${(product.price / 1000).toFixed(3).replace('.', ',')}` : 'Consultar'}</span>
+                        <span class="product-whatsapp-price text-[9px] sm:text-[10px]">{product.selectedVariant?.price || product.price ? formatPrice(product.selectedVariant?.price || product.price) : 'Consultar'}</span>
                         <span class="material-symbols-outlined text-xs">arrow_forward</span>
                       </button>
                     </div>
@@ -405,7 +457,7 @@ const totalCategories = categories.length;
     let currentSearchTerm = '';
     let currentCategory = '';
     let allProducts: Array<{name: string, description: string, category: string, image: string, price: number}> = [];
-    const cart = new Map<string, { id: string; name: string; sku: string; price: number; quantity: number; image: string }>();
+    const cart = new Map<string, { id: string; key: string; name: string; sku: string; variantLabel: string; price: number; quantity: number; image: string }>();
 
     const formatPrice = (value: number) => `$${(value / 1000).toFixed(3).replace('.', ',')} COP`;
 
@@ -451,18 +503,19 @@ const totalCategories = categories.length;
               <div>
               <p class="font-semibold text-on-surface leading-tight">${item.name}</p>
               <p class="text-xs text-on-surface-variant">SKU: ${item.sku || 'N/A'}</p>
+              ${item.variantLabel ? `<p class="text-xs text-secondary font-semibold">${item.variantLabel}</p>` : ''}
               </div>
             </div>
-            <button class="cart-remove text-error" data-product-id="${item.id}">
+            <button class="cart-remove text-error" data-product-id="${item.key}">
               <span class="material-symbols-outlined text-lg">delete</span>
             </button>
           </div>
           <div class="flex items-center justify-between">
             <p class="font-bold text-primary">${formatPrice(item.price || 0)}</p>
             <div class="flex items-center gap-2">
-              <button class="cart-qty-minus w-7 h-7 rounded-md bg-surface-container text-sm" data-product-id="${item.id}">-</button>
+              <button class="cart-qty-minus w-7 h-7 rounded-md bg-surface-container text-sm" data-product-id="${item.key}">-</button>
               <span class="min-w-5 text-center font-semibold text-sm">${item.quantity}</span>
-              <button class="cart-qty-plus w-7 h-7 rounded-md bg-surface-container text-sm" data-product-id="${item.id}">+</button>
+              <button class="cart-qty-plus w-7 h-7 rounded-md bg-surface-container text-sm" data-product-id="${item.key}">+</button>
             </div>
           </div>
         </div>
@@ -471,12 +524,12 @@ const totalCategories = categories.length;
       updateCartBadge();
     }
 
-    function addToCart(productId: string, name: string, sku: string, price: number, quantity: number, image: string) {
-      const existing = cart.get(productId);
+    function addToCart(cartKey: string, productId: string, name: string, sku: string, variantLabel: string, price: number, quantity: number, image: string) {
+      const existing = cart.get(cartKey);
       if (existing) {
         existing.quantity += quantity;
       } else {
-        cart.set(productId, { id: productId, name, sku, price, quantity, image });
+        cart.set(cartKey, { id: productId, key: cartKey, name, sku, variantLabel, price, quantity, image });
       }
       renderCart();
     }
@@ -523,7 +576,8 @@ const totalCategories = categories.length;
       if (cart.size === 0) return;
 
       const lines = Array.from(cart.values()).map((item) => {
-        return `- ${item.name} (SKU: ${item.sku || 'N/A'}) x${item.quantity}`;
+        const variantLine = item.variantLabel ? ` - ${item.variantLabel}` : '';
+        return `- ${item.name}${variantLine} (SKU: ${item.sku || 'N/A'}) x${item.quantity}`;
       });
 
       const message = `Hola, quiero cotizar:\n${lines.join('\n')}`;
@@ -779,6 +833,7 @@ const totalCategories = categories.length;
         const productName = btn.getAttribute('data-product-name');
         const productSku = btn.getAttribute('data-product-sku');
         const productPrice = btn.getAttribute('data-product-price');
+        const variantLabel = btn.getAttribute('data-product-variant-label');
         
         const quantity = 1;
         
@@ -787,6 +842,10 @@ const totalCategories = categories.length;
         
         // Build WhatsApp message
         let message = `¡Hola! Me interesa: ${productName}`;
+
+        if (variantLabel) {
+          message += ` - ${variantLabel}`;
+        }
         
         if (productSku) {
           message += ` (SKU: ${productSku})`;
@@ -811,33 +870,70 @@ const totalCategories = categories.length;
         const productSku = btn.getAttribute('data-product-sku') || '';
         const productPrice = parseInt(btn.getAttribute('data-product-price') || '0');
         const productImage = btn.getAttribute('data-product-image') || '';
+        const variantId = btn.getAttribute('data-product-variant-id') || '';
+        const variantLabel = btn.getAttribute('data-product-variant-label') || '';
+        const cartKey = variantId ? `${productId}:${variantId}` : productId;
 
-        addToCart(productId, productName, productSku, productPrice, 1, productImage);
+        addToCart(cartKey, productId, productName, productSku, variantLabel, productPrice, 1, productImage);
         openCart();
       });
     });
 
-    // Image carousel functionality for products with multiple images
+    const findMatchingVariant = (variants, selection) => {
+      if (!Array.isArray(variants) || variants.length === 0) return null;
+
+      const selectedEntries = Object.entries(selection).filter(([, value]) => String(value || '').trim().length > 0);
+      if (selectedEntries.length === 0) return variants[0];
+
+      return (
+        variants.find((variant) =>
+          selectedEntries.every(([name, value]) =>
+            Array.isArray(variant.attributes) && variant.attributes.some((attribute) => attribute.name === name && attribute.value === value)
+          )
+        ) || variants[0]
+      );
+    };
+
+    // Image carousel and variant functionality
     document.querySelectorAll('.product-card').forEach(card => {
       const imagesData = card.getAttribute('data-product-images');
-      if (!imagesData) return;
-      
+      const variantsData = card.getAttribute('data-product-variants');
+      const defaultSelectionData = card.getAttribute('data-product-default-selection');
+
       let images: string[] = [];
+      let variants = [];
+      let selection = {};
+
       try {
         images = JSON.parse(imagesData);
       } catch {
-        return;
+        images = [];
+      }
+
+      try {
+        variants = JSON.parse(variantsData || '[]');
+      } catch {
+        variants = [];
+      }
+
+      try {
+        selection = JSON.parse(defaultSelectionData || '{}');
+      } catch {
+        selection = {};
       }
       
-      // Get the main product image from the img element
       const mainImg = card.querySelector('.product-main-image') as HTMLImageElement;
-      if (!mainImg) return;
-      
-      const mainImageSrc = mainImg.src;
-      // Build complete image array: main image + additional images
-      const allImages = [mainImageSrc, ...images];
-      
-      if (allImages.length <= 1) return;
+      const priceEl = card.querySelector('.product-price') as HTMLElement;
+      const selectedVariantEl = card.querySelector('.product-selected-variant') as HTMLElement;
+      const addToCartBtn = card.querySelector('.add-to-cart-btn') as HTMLButtonElement;
+      const whatsappBtn = card.querySelector('.whatsapp-btn') as HTMLButtonElement;
+      const whatsappPriceEl = card.querySelector('.product-whatsapp-price') as HTMLElement;
+      const dotsContainer = card.querySelector('.product-image-container');
+      if (!mainImg || !addToCartBtn || !whatsappBtn || !priceEl || !selectedVariantEl || !whatsappPriceEl) return;
+
+      const basePrice = parseInt(card.getAttribute('data-product-base-price') || '0');
+      const baseImage = card.getAttribute('data-product-base-image') || mainImg.src;
+      let allImages = images.length > 0 ? images : [baseImage];
       
       let currentIndex = 0;
       const dots = card.querySelectorAll('.product-img-dot');
@@ -861,7 +957,65 @@ const totalCategories = categories.length;
           }
         });
       };
-      
+
+      const applyVariantState = () => {
+        const selectedVariant = findMatchingVariant(variants, selection);
+        const activePrice = selectedVariant?.price || basePrice;
+        const activeImage = selectedVariant?.image || baseImage;
+        const activeLabel = selectedVariant?.label || 'Sin variante seleccionada';
+
+        allImages = [activeImage, ...images.filter((image) => image && image !== activeImage)];
+        currentIndex = 0;
+        mainImg.src = allImages[0] || baseImage;
+
+        priceEl.textContent = activePrice ? formatPrice(activePrice) : 'Consultar';
+        selectedVariantEl.textContent = selectedVariant ? activeLabel : 'Sin variante seleccionada';
+        whatsappPriceEl.textContent = activePrice ? formatPrice(activePrice) : 'Consultar';
+
+        addToCartBtn.setAttribute('data-product-price', String(activePrice || 0));
+        addToCartBtn.setAttribute('data-product-image', activeImage || '');
+        addToCartBtn.setAttribute('data-product-variant-id', selectedVariant?.id || '');
+        addToCartBtn.setAttribute('data-product-variant-label', selectedVariant ? activeLabel : '');
+        whatsappBtn.setAttribute('data-product-price', String(activePrice || 0));
+        whatsappBtn.setAttribute('data-product-variant-id', selectedVariant?.id || '');
+        whatsappBtn.setAttribute('data-product-variant-label', selectedVariant ? activeLabel : '');
+
+        dots.forEach((dot, index) => {
+          if (index === 0) {
+            dot.classList.add('active');
+            dot.classList.remove('bg-on-primary/60');
+            dot.classList.add('bg-on-primary');
+          } else {
+            dot.classList.remove('active');
+            dot.classList.remove('bg-on-primary');
+            dot.classList.add('bg-on-primary/60');
+          }
+        });
+      };
+
+      card.querySelectorAll('.variant-option-btn').forEach((button) => {
+        button.addEventListener('click', () => {
+          const attributeName = button.getAttribute('data-attribute-name') || '';
+          const attributeValue = button.getAttribute('data-attribute-value') || '';
+          selection[attributeName] = attributeValue;
+
+          const group = button.closest('[data-variant-group]');
+          group?.querySelectorAll('.variant-option-btn').forEach((option) => {
+            option.classList.remove('border-secondary', 'bg-secondary/12', 'text-secondary');
+            option.classList.add('border-outline-variant', 'bg-surface-container', 'text-on-surface-variant');
+            option.setAttribute('aria-pressed', 'false');
+          });
+
+          button.classList.remove('border-outline-variant', 'bg-surface-container', 'text-on-surface-variant');
+          button.classList.add('border-secondary', 'bg-secondary/12', 'text-secondary');
+          button.setAttribute('aria-pressed', 'true');
+
+          applyVariantState();
+        });
+      });
+
+      applyVariantState();
+
       // Previous button
       prevBtn?.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -877,12 +1031,12 @@ const totalCategories = categories.length;
       });
       
       // Dot indicators
-      dots.forEach((dot, index) => {
-        dot.addEventListener('click', (e) => {
-          e.stopPropagation();
-          updateImage(index);
+        dots.forEach((dot, index) => {
+          dot.addEventListener('click', (e) => {
+            e.stopPropagation();
+            updateImage(index);
+          });
         });
-      });
     });
 
     renderCart();

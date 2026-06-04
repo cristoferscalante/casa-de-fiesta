@@ -1,0 +1,394 @@
+---
+import { normalizeProductVariants } from '../../lib/product-variants';
+
+interface Props {
+  name?: string;
+  id?: string;
+  initialVariants?: unknown;
+}
+
+const {
+  name = 'variants',
+  id = 'variants',
+  initialVariants = [],
+} = Astro.props;
+
+const editorId = `${id}-editor`;
+const containerId = `${id}-items`;
+const addVariantId = `${id}-add-variant`;
+const templateId = `${id}-variant-template`;
+const attributeTemplateId = `${id}-attribute-template`;
+const emptyId = `${id}-empty`;
+const initialValue = JSON.stringify(normalizeProductVariants(initialVariants));
+---
+
+<div id={editorId} class="space-y-4" data-initial-variants={initialValue}>
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <label for={id} class="block text-sm font-semibold text-on-surface mb-2">
+        Variantes del producto
+      </label>
+      <p class="text-sm text-on-surface-variant">
+        Crea opciones por producto como `Tamano`, `Color` o `Acabado`. Cada variante puede heredar el precio global o usar uno propio y tener una imagen distinta.
+      </p>
+    </div>
+    <button
+      type="button"
+      id={addVariantId}
+      class="shrink-0 inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-on-secondary hover:brightness-105 transition-all"
+    >
+      <span class="material-symbols-outlined text-base">add</span>
+      Agregar variante
+    </button>
+  </div>
+
+  <textarea id={id} name={name} class="hidden">{initialValue}</textarea>
+
+  <div id={emptyId} class="rounded-2xl border border-dashed border-outline-variant bg-surface-container-low px-5 py-8 text-center text-sm text-on-surface-variant">
+    Este producto aun no tiene variantes. Usa `Tamano` para globos como `R-12` o agrega `Color` si aplica.
+  </div>
+
+  <div id={containerId} class="space-y-4"></div>
+
+  <template id={templateId}>
+    <article class="variant-card rounded-[1.5rem] border border-outline-variant bg-surface-container-low p-5 space-y-4 shadow-sm">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-[0.2em] text-secondary">Variante</p>
+          <p class="variant-summary mt-1 text-sm text-on-surface-variant">Configura atributos, precio e imagen.</p>
+        </div>
+        <button type="button" class="remove-variant-btn inline-flex h-9 w-9 items-center justify-center rounded-full bg-error-container text-on-error-container hover:brightness-95 transition-all" title="Eliminar variante">
+          <span class="material-symbols-outlined text-base">delete</span>
+        </button>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        <div>
+          <label class="block text-sm font-semibold text-on-surface mb-2">Etiqueta visible</label>
+          <input type="text" class="variant-label w-full rounded border border-outline-variant bg-surface px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="Ej: Azul R-12" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-on-surface mb-2">SKU interno opcional</label>
+          <input type="text" class="variant-id w-full rounded border border-outline-variant bg-surface px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="Ej: azul-r12" />
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <div class="flex items-center justify-between gap-3">
+          <label class="block text-sm font-semibold text-on-surface">Atributos</label>
+          <button type="button" class="add-attribute-btn inline-flex items-center gap-1 text-sm font-semibold text-secondary hover:text-tertiary transition-colors">
+            <span class="material-symbols-outlined text-base">add</span>
+            Agregar atributo
+          </button>
+        </div>
+        <div class="attributes-container space-y-3"></div>
+      </div>
+
+      <div class="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+        <div class="rounded-[1.25rem] border border-outline-variant bg-surface p-4 space-y-4">
+          <div class="flex items-center gap-3">
+            <input type="checkbox" class="variant-use-global-price h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary/20" checked />
+            <label class="text-sm font-semibold text-on-surface">Usar precio global del producto</label>
+          </div>
+
+          <div class="variant-price-wrapper opacity-60">
+            <label class="block text-sm font-semibold text-on-surface mb-2">Precio personalizado</label>
+            <div class="relative">
+              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-semibold">$</span>
+              <input type="number" min="0" step="100" class="variant-price w-full rounded border border-outline-variant bg-surface px-4 py-3 pl-8 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="Ej: 18000" disabled />
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-[1.25rem] border border-outline-variant bg-surface p-4 space-y-3">
+          <div class="flex items-center justify-between gap-3">
+            <label class="block text-sm font-semibold text-on-surface">Imagen de la variante</label>
+            <button type="button" class="remove-image-btn text-sm font-semibold text-error hover:opacity-80 transition-opacity hidden">Quitar</button>
+          </div>
+
+          <div class="variant-image-preview aspect-[4/3] overflow-hidden rounded-[1rem] border border-outline-variant bg-surface-container-low flex items-center justify-center text-on-surface-variant">
+            <div class="variant-image-placeholder text-center">
+              <span class="material-symbols-outlined text-4xl">image</span>
+              <p class="mt-2 text-xs">Usa una imagen distinta para esta variante</p>
+            </div>
+            <img class="variant-image hidden h-full w-full object-cover" alt="Imagen de variante" />
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="upload-image-btn inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary hover:brightness-105 transition-all">
+              <span class="material-symbols-outlined text-base">upload</span>
+              Subir imagen
+            </button>
+          </div>
+
+          <input type="file" accept="image/jpeg,image/jpg,image/png,image/webp" class="variant-image-input hidden" />
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <template id={attributeTemplateId}>
+    <div class="attribute-row grid gap-3 md:grid-cols-[0.9fr_1.1fr_auto] items-end">
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant mb-2">Tipo</label>
+        <input type="text" class="attribute-name w-full rounded border border-outline-variant bg-surface px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="Ej: Tamano" />
+      </div>
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant mb-2">Valor</label>
+        <input type="text" class="attribute-value w-full rounded border border-outline-variant bg-surface px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="Ej: R-12" />
+      </div>
+      <button type="button" class="remove-attribute-btn inline-flex h-11 w-11 items-center justify-center rounded-full bg-surface-container text-on-surface hover:bg-error-container hover:text-on-error-container transition-all" title="Eliminar atributo">
+        <span class="material-symbols-outlined text-base">close</span>
+      </button>
+    </div>
+  </template>
+</div>
+
+<script define:vars={{ editorId, containerId, addVariantId, templateId, attributeTemplateId, emptyId, inputId: id }}>
+  const editor = document.getElementById(editorId);
+
+  if (editor) {
+    const variantsInput = document.getElementById(inputId);
+    const variantsContainer = document.getElementById(containerId);
+    const addVariantBtn = document.getElementById(addVariantId);
+    const variantTemplate = document.getElementById(templateId);
+    const attributeTemplate = document.getElementById(attributeTemplateId);
+    const emptyState = document.getElementById(emptyId);
+    const uploadFolder = 'mister-lya/products/variants';
+
+    const initialVariants = (() => {
+      try {
+        return JSON.parse(editor.dataset.initialVariants || '[]');
+      } catch {
+        return [];
+      }
+    })();
+
+    const toSlug = (value) =>
+      String(value || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+
+    const syncVariants = () => {
+      const cards = Array.from(variantsContainer.querySelectorAll('.variant-card'));
+
+      const variants = cards.map((card, index) => {
+        const label = card.querySelector('.variant-label')?.value?.trim() || '';
+        const idValue = card.querySelector('.variant-id')?.value?.trim() || '';
+        const useGlobalPrice = card.querySelector('.variant-use-global-price')?.checked;
+        const priceValue = card.querySelector('.variant-price')?.value?.trim() || '';
+        const imageValue = card.dataset.imageUrl || '';
+        const attributes = Array.from(card.querySelectorAll('.attribute-row'))
+          .map((row) => ({
+            name: row.querySelector('.attribute-name')?.value?.trim() || '',
+            value: row.querySelector('.attribute-value')?.value?.trim() || '',
+          }))
+          .filter((attribute) => attribute.name && attribute.value);
+
+        if (attributes.length === 0) return null;
+
+        const fallbackLabel = attributes.map((attribute) => attribute.value).join(' / ');
+
+        return {
+          id: idValue || `variant-${index + 1}-${toSlug(label || fallbackLabel || 'opcion')}`,
+          label: label || fallbackLabel,
+          attributes,
+          price: useGlobalPrice || !priceValue ? null : Number.parseInt(priceValue, 10),
+          image: imageValue || null,
+        };
+      }).filter(Boolean);
+
+      variantsInput.value = JSON.stringify(variants);
+      emptyState.style.display = variants.length > 0 ? 'none' : 'block';
+
+      cards.forEach((card) => {
+        const label = card.querySelector('.variant-label')?.value?.trim();
+        const attrs = Array.from(card.querySelectorAll('.attribute-row')).map((row) => row.querySelector('.attribute-value')?.value?.trim()).filter(Boolean);
+        const summary = card.querySelector('.variant-summary');
+        if (summary) {
+          summary.textContent = label || attrs.join(' / ') || 'Configura atributos, precio e imagen.';
+        }
+      });
+    };
+
+    const updateVariantImage = (card, imageUrl) => {
+      card.dataset.imageUrl = imageUrl || '';
+
+      const img = card.querySelector('.variant-image');
+      const placeholder = card.querySelector('.variant-image-placeholder');
+      const removeBtn = card.querySelector('.remove-image-btn');
+
+      if (imageUrl) {
+        img.src = imageUrl;
+        img.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+        removeBtn.classList.remove('hidden');
+      } else {
+        img.src = '';
+        img.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+        removeBtn.classList.add('hidden');
+      }
+
+      syncVariants();
+    };
+
+    const togglePriceInput = (card) => {
+      const checkbox = card.querySelector('.variant-use-global-price');
+      const priceInput = card.querySelector('.variant-price');
+      const wrapper = card.querySelector('.variant-price-wrapper');
+      const useGlobal = checkbox.checked;
+
+      priceInput.disabled = useGlobal;
+      wrapper.classList.toggle('opacity-60', useGlobal);
+
+      if (useGlobal) {
+        priceInput.value = '';
+      }
+
+      syncVariants();
+    };
+
+    const createAttributeRow = (attribute = { name: 'Tamano', value: '' }) => {
+      const fragment = attributeTemplate.content.cloneNode(true);
+      const row = fragment.querySelector('.attribute-row');
+      const nameInput = row.querySelector('.attribute-name');
+      const valueInput = row.querySelector('.attribute-value');
+      const removeBtn = row.querySelector('.remove-attribute-btn');
+
+      nameInput.value = attribute.name || 'Tamano';
+      valueInput.value = attribute.value || '';
+
+      [nameInput, valueInput].forEach((input) => {
+        input.addEventListener('input', syncVariants);
+      });
+
+      removeBtn.addEventListener('click', () => {
+        const container = row.parentElement;
+        row.remove();
+
+        if (container && container.children.length === 0) {
+          container.appendChild(createAttributeRow());
+        }
+
+        syncVariants();
+      });
+
+      return row;
+    };
+
+    const createVariantCard = (variant = null) => {
+      const fragment = variantTemplate.content.cloneNode(true);
+      const card = fragment.querySelector('.variant-card');
+      const labelInput = card.querySelector('.variant-label');
+      const idInput = card.querySelector('.variant-id');
+      const attributesContainer = card.querySelector('.attributes-container');
+      const addAttributeBtn = card.querySelector('.add-attribute-btn');
+      const removeVariantBtn = card.querySelector('.remove-variant-btn');
+      const useGlobalPriceCheckbox = card.querySelector('.variant-use-global-price');
+      const priceInput = card.querySelector('.variant-price');
+      const uploadInput = card.querySelector('.variant-image-input');
+      const uploadBtn = card.querySelector('.upload-image-btn');
+      const removeImageBtn = card.querySelector('.remove-image-btn');
+
+      const normalizedVariant = variant || {
+        id: '',
+        label: '',
+        attributes: [{ name: 'Tamano', value: '' }],
+        price: null,
+        image: null,
+      };
+
+      labelInput.value = normalizedVariant.label || '';
+      idInput.value = normalizedVariant.id || '';
+      card.dataset.imageUrl = normalizedVariant.image || '';
+
+      const attributes = normalizedVariant.attributes?.length ? normalizedVariant.attributes : [{ name: 'Tamano', value: '' }];
+      attributes.forEach((attribute) => {
+        attributesContainer.appendChild(createAttributeRow(attribute));
+      });
+
+      if (normalizedVariant.price !== null && normalizedVariant.price !== undefined) {
+        useGlobalPriceCheckbox.checked = false;
+        priceInput.value = String(normalizedVariant.price);
+      }
+
+      updateVariantImage(card, normalizedVariant.image || '');
+      togglePriceInput(card);
+
+      [labelInput, idInput, priceInput].forEach((input) => {
+        input.addEventListener('input', syncVariants);
+      });
+
+      useGlobalPriceCheckbox.addEventListener('change', () => togglePriceInput(card));
+
+      addAttributeBtn.addEventListener('click', () => {
+        attributesContainer.appendChild(createAttributeRow());
+        syncVariants();
+      });
+
+      removeVariantBtn.addEventListener('click', () => {
+        card.remove();
+        syncVariants();
+      });
+
+      uploadBtn.addEventListener('click', () => uploadInput.click());
+
+      removeImageBtn.addEventListener('click', () => updateVariantImage(card, ''));
+
+      uploadInput.addEventListener('change', async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('folder', uploadFolder);
+
+        uploadBtn.disabled = true;
+        uploadBtn.classList.add('opacity-60', 'cursor-not-allowed');
+
+        try {
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'No se pudo subir la imagen de la variante');
+          }
+
+          const result = await response.json();
+          updateVariantImage(card, result.url);
+          uploadInput.value = '';
+        } catch (error) {
+          console.error(error);
+          alert(error.message || 'No se pudo subir la imagen de la variante');
+        } finally {
+          uploadBtn.disabled = false;
+          uploadBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+        }
+      });
+
+      return card;
+    };
+
+    addVariantBtn.addEventListener('click', () => {
+      variantsContainer.appendChild(createVariantCard());
+      syncVariants();
+    });
+
+    if (initialVariants.length > 0) {
+      initialVariants.forEach((variant) => {
+        variantsContainer.appendChild(createVariantCard(variant));
+      });
+    }
+
+    syncVariants();
+  }
+</script>

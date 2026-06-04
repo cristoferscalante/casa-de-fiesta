@@ -1,6 +1,19 @@
 ---
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { normalizeProductVariants } from '../../../lib/product-variants';
+
+const parseJsonField = (value: unknown, fallback: any) => {
+  if (value == null) return fallback;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return fallback;
+    }
+  }
+  return value;
+};
 
 // Fetch all products with category info
 const { data: productsData } = await supabaseAdmin
@@ -12,6 +25,7 @@ const allProducts = (productsData || []).map((p: any) => ({
   product: {
     ...p,
     categoryId: p.category_id,
+    variants: normalizeProductVariants(parseJsonField(p.variants, [])),
   },
   categoryName: p.categories?.name || 'Sin categoría',
 }));
@@ -97,6 +111,7 @@ const allCategories = categoriesData || [];
               <th class="px-3 py-2.5 text-left text-xs font-semibold text-on-surface">SKU</th>
               <th class="px-3 py-2.5 text-left text-xs font-semibold text-on-surface">Nombre</th>
               <th class="px-3 py-2.5 text-left text-xs font-semibold text-on-surface">Categoría</th>
+              <th class="px-3 py-2.5 text-left text-xs font-semibold text-on-surface">Variantes</th>
               <th class="px-3 py-2.5 text-left text-xs font-semibold text-on-surface">Precio</th>
               <th class="px-3 py-2.5 text-left text-xs font-semibold text-on-surface">Estado</th>
               <th class="px-3 py-2.5 text-left text-xs font-semibold text-on-surface">Acciones</th>
@@ -139,6 +154,11 @@ const allCategories = categoriesData || [];
                 <td class="px-3 py-2">
                   <span class="px-2 py-0.5 bg-primary-container text-on-primary-container rounded text-xs">
                     {categoryName || 'Sin categoría'}
+                  </span>
+                </td>
+                <td class="px-3 py-2">
+                  <span class="text-xs font-semibold text-on-surface">
+                    {product.variants?.length ? `${product.variants.length} opcion${product.variants.length > 1 ? 'es' : ''}` : 'Sin variantes'}
                   </span>
                 </td>
                 <td class="px-3 py-2">

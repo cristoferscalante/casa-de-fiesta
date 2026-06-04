@@ -1,5 +1,6 @@
 ---
 import { products as localCatalogProducts } from '../data/catalogCasaDeFiestas';
+import { getVariantDisplayLabel, normalizeProductVariants } from '../lib/product-variants';
 
 interface Props {
   products: any[];
@@ -31,7 +32,7 @@ const parseJsonMaybe = (value: unknown, fallback: any) => {
 
 const normalizedProducts = products.map((product) => ({
   ...product,
-  variants: parseJsonMaybe(product.variants, null),
+  variants: normalizeProductVariants(parseJsonMaybe(product.variants, [])),
 }));
 
 const activeProducts = normalizedProducts.filter((product) => product?.active);
@@ -70,7 +71,7 @@ const getFeatures = (product: any) => {
   if (!product) return [];
   if (Array.isArray(product.variants) && product.variants.length > 0) {
     return product.variants
-      .map((variant: any) => (typeof variant === 'string' ? variant : variant?.name || variant?.value || 'Variante'))
+      .map((variant: any) => getVariantDisplayLabel(variant))
       .filter(Boolean)
       .slice(0, 3);
   }
